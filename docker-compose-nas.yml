@@ -1,0 +1,7 @@
+services:
+  web:
+    image: ghcr.io/meofyou/my-test-site:latest
+    container_name: my-test-site
+    ports:
+      - "8080:80"
+    restart: unless-stopped
