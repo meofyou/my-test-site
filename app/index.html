@@ -3,25 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FreeCell v1.2.0</title>
+    <title>Chrome Dino Clone</title>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Spectral:wght@400;600&display=swap");
-
       :root {
-        --bg-1: #08111f;
-        --bg-2: #0d2137;
-        --bg-3: #18344a;
-        --card: #f8f2ea;
-        --card-ink: #111217;
-        --accent: #f0b35a;
-        --accent-2: #6bd1b6;
-        --outline: rgba(255, 255, 255, 0.22);
-        --shadow: rgba(4, 10, 24, 0.48);
-        --card-w: 96px;
-        --card-h: 132px;
-        --col-w: 116px;
-        --stack-gap: 34px;
-        --gutter: 14px;
+        --bg: #f7f7f7;
+        --ink: #535353;
+        --line: #c9c9c9;
       }
 
       * {
@@ -31,902 +18,439 @@
       body {
         margin: 0;
         min-height: 100vh;
-        color: #edf3fb;
-        font-family: "Space Grotesk", "Segoe UI", sans-serif;
-        background: radial-gradient(circle at 10% 20%, rgba(107, 209, 182, 0.18), transparent 40%),
-          radial-gradient(circle at 80% 0%, rgba(240, 179, 90, 0.2), transparent 35%),
-          linear-gradient(160deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
-      }
-
-      .app {
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 32px 20px 48px;
-      }
-
-      header {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 24px;
-      }
-
-      .title {
-        display: grid;
-        gap: 6px;
-      }
-
-      .title h1 {
-        margin: 0;
-        font-size: clamp(28px, 4vw, 44px);
-        letter-spacing: -0.02em;
-      }
-
-      .title p {
-        margin: 0;
-        font-family: "Spectral", "Georgia", serif;
-        font-size: 15px;
-        opacity: 0.86;
-      }
-
-      .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      button {
-        appearance: none;
-        border: 1px solid var(--outline);
-        background: rgba(255, 255, 255, 0.09);
-        color: inherit;
-        padding: 10px 16px;
-        border-radius: 999px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: transform 0.15s ease, background 0.2s ease, border 0.2s ease;
-      }
-
-      button:hover {
-        transform: translateY(-1px);
-        background: rgba(255, 255, 255, 0.17);
-        border-color: rgba(255, 255, 255, 0.35);
-      }
-
-      .status {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
-      }
-
-      .status-card {
-        padding: 14px 16px;
-        border-radius: 14px;
-        background: rgba(8, 16, 30, 0.66);
-        border: 1px solid var(--outline);
-        box-shadow: 0 10px 30px var(--shadow);
-        font-size: 13px;
-        display: grid;
-        gap: 6px;
-      }
-
-      .status-card span {
-        font-size: 18px;
-        font-weight: 700;
-      }
-
-      .board {
-        display: grid;
-        gap: 18px;
-        overflow-x: auto;
-        padding: 0 0 8px;
-      }
-
-      .top-row {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(var(--col-w), 1fr)) 20px repeat(4, minmax(var(--col-w), 1fr));
-        gap: var(--gutter);
-        align-items: start;
-        min-width: calc(8 * var(--col-w) + 7 * var(--gutter) + 20px);
-      }
-
-      .separator {
-        height: 60px;
-      }
-
-      .cell,
-      .foundation {
-        min-height: calc(var(--card-h) + 18px);
-        min-width: var(--col-w);
-        border-radius: 14px;
-        border: 1px dashed rgba(255, 255, 255, 0.28);
-        background: rgba(13, 22, 38, 0.6);
         display: grid;
         place-items: center;
-        position: relative;
-        padding: 9px;
-        transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Segoe UI", Tahoma, sans-serif;
       }
 
-      .foundation {
-        border-style: solid;
-        background: rgba(240, 179, 90, 0.12);
+      .game-wrap {
+        width: min(920px, 96vw);
       }
 
-      .cell-label {
-        font-size: 11px;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        opacity: 0.62;
-        position: absolute;
-        top: 8px;
-        left: 12px;
-      }
-
-      .tableau {
-        display: grid;
-        grid-template-columns: repeat(8, minmax(var(--col-w), 1fr));
-        gap: var(--gutter);
-        min-width: calc(8 * var(--col-w) + 7 * var(--gutter));
-      }
-
-      .column {
-        min-height: 460px;
-        min-width: var(--col-w);
-        border-radius: 16px;
-        border: 1px dashed rgba(255, 255, 255, 0.2);
-        padding: 12px 8px 16px;
-        background: rgba(10, 16, 30, 0.6);
-        position: relative;
-        transition: border 0.2s ease, box-shadow 0.2s ease;
-      }
-
-      .card {
-        width: var(--card-w);
-        height: var(--card-h);
-        border-radius: 12px;
-        background: var(--card);
-        color: var(--card-ink);
-        box-shadow: 0 12px 26px rgba(5, 10, 20, 0.34);
-        border: 2px solid rgba(8, 12, 20, 0.12);
-        transition: transform 0.15s ease, border 0.2s ease, box-shadow 0.2s ease;
-        cursor: grab;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        padding: 9px 10px;
-        position: relative;
-        z-index: 1;
-        user-select: none;
-      }
-
-      .tableau-card {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-
-      .card.red {
-        color: #bf2d35;
-      }
-
-      .card.black {
-        color: #151a25;
-      }
-
-      .card .corner {
-        font-size: 18px;
-        line-height: 1;
-        font-weight: 700;
-        display: grid;
-        justify-items: start;
-        gap: 1px;
-      }
-
-      .card .corner .small-suit {
-        font-size: 16px;
-      }
-
-      .card .corner.bottom {
-        justify-self: end;
-        transform: rotate(180deg);
-      }
-
-      .card .center {
-        display: grid;
-        place-items: center;
-      }
-
-      .card .pips {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 2px 8px;
+      canvas {
         width: 100%;
-        justify-items: center;
+        height: auto;
+        display: block;
+        border-bottom: 1px solid var(--line);
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        background: #fff;
       }
 
-      .card .pip {
-        font-size: 19px;
-        line-height: 1;
-      }
-
-      .card .pips[data-count="1"] {
-        grid-template-columns: 1fr;
-      }
-
-      .card .pips[data-count="3"] .pip:last-child,
-      .card .pips[data-count="5"] .pip:last-child,
-      .card .pips[data-count="7"] .pip:last-child,
-      .card .pips[data-count="9"] .pip:last-child {
-        grid-column: 1 / -1;
-      }
-
-      .card .face-rank {
-        font-size: 38px;
-        font-weight: 700;
-        line-height: 1;
-      }
-
-      .card .face-suit {
-        font-size: 22px;
-        margin-top: 4px;
-      }
-
-      .card.selected {
-        border-color: var(--accent);
-        box-shadow: 0 14px 28px rgba(240, 179, 90, 0.3);
-      }
-
-      .tableau-card.selected {
-        transform: translate(-50%, -4px);
-      }
-
-      .card.selected:not(.tableau-card) {
-        transform: translateY(-4px);
-      }
-
-      .card.dragging {
-        opacity: 0.65;
-        cursor: grabbing;
-      }
-
-      .drop-ready {
-        outline: 2px solid rgba(240, 179, 90, 0.68);
-        outline-offset: -4px;
-        box-shadow: 0 12px 30px rgba(240, 179, 90, 0.2);
-      }
-
-      .empty-msg {
-        font-size: 12px;
-        opacity: 0.64;
-        text-align: center;
-        padding: 10px;
-      }
-
-      .rules {
-        margin-top: 22px;
-        padding: 16px 18px;
-        border-radius: 14px;
-        border: 1px solid var(--outline);
-        background: rgba(12, 20, 34, 0.64);
+      .help {
+        margin-top: 10px;
         font-size: 13px;
-        line-height: 1.6;
-      }
-
-      .rules b {
-        color: var(--accent);
-      }
-
-      @media (max-width: 900px) {
-        :root {
-          --card-w: 86px;
-          --card-h: 120px;
-          --col-w: 104px;
-          --stack-gap: 30px;
-        }
-
-        .top-row {
-          grid-template-columns: repeat(4, minmax(var(--col-w), 1fr));
-        }
-
-        .separator {
-          display: none;
-        }
-
-        .tableau {
-          grid-template-columns: repeat(4, minmax(var(--col-w), 1fr));
-        }
+        text-align: center;
+        color: #7a7a7a;
       }
     </style>
   </head>
   <body>
-    <div class="app">
-      <header>
-        <div class="title">
-          <h1>FreeCell v1.2.0</h1>
-          <p>카드를 드래그하거나 클릭해서 이동하세요. 더블클릭하면 가능한 경우 Foundation으로 자동 이동합니다.</p>
-        </div>
-        <div class="controls">
-          <button id="newGameBtn">새 게임</button>
-          <button id="undoBtn">되돌리기</button>
-          <button id="autoBtn">자동 이동</button>
-        </div>
-      </header>
-
-      <section class="status">
-        <div class="status-card">
-          <div>이동 횟수</div>
-          <span id="moveCount">0</span>
-        </div>
-        <div class="status-card">
-          <div>남은 Free Cell</div>
-          <span id="freeCount">4 / 4</span>
-        </div>
-        <div class="status-card">
-          <div>남은 카드</div>
-          <span id="remainingCount">52</span>
-        </div>
-      </section>
-
-      <div class="board">
-        <div class="top-row" id="topRow"></div>
-        <div class="tableau" id="tableau"></div>
-      </div>
-
-      <div class="rules">
-        <b>FreeCell 규칙 요약</b> - 모든 카드를 4개의 <b>Foundation</b>에 무늬별 A부터 K 순서로 쌓으면 승리입니다.
-        <br />
-        <b>Tableau</b>에서는 색이 번갈아야 하고 숫자는 내림차순으로만 내려놓을 수 있습니다.
-        <b>Free Cell</b>은 임시 보관 공간이며, 빈 칸 수에 따라 한 번에 이동 가능한 카드 수가 달라집니다.
-      </div>
+    <div class="game-wrap">
+      <canvas id="game" width="920" height="220" aria-label="Chrome Dino Game"></canvas>
+      <div class="help">`Space` / `↑`: 점프, `↓`: 숙이기, 게임 오버 시 `Space`로 재시작</div>
     </div>
 
     <script>
-      const VERSION = "1.2.0";
-      const suits = [
-        { name: "spades", symbol: "♠", color: "black" },
-        { name: "hearts", symbol: "♥", color: "red" },
-        { name: "clubs", symbol: "♣", color: "black" },
-        { name: "diamonds", symbol: "♦", color: "red" },
-      ];
-      const ranks = [
-        { name: "A", value: 1 },
-        { name: "2", value: 2 },
-        { name: "3", value: 3 },
-        { name: "4", value: 4 },
-        { name: "5", value: 5 },
-        { name: "6", value: 6 },
-        { name: "7", value: 7 },
-        { name: "8", value: 8 },
-        { name: "9", value: 9 },
-        { name: "10", value: 10 },
-        { name: "J", value: 11 },
-        { name: "Q", value: 12 },
-        { name: "K", value: 13 },
-      ];
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const GROUND_Y = 182;
+      const GRAVITY = 0.56;
+      const JUMP_POWER = 11.6;
+      const BASE_SPEED = 6.2;
 
       const state = {
-        freeCells: Array(4).fill(null),
-        foundations: Array(4).fill(null),
-        tableau: Array.from({ length: 8 }, () => []),
-        moveCount: 0,
-        history: [],
-        selection: null,
+        running: false,
+        gameOver: false,
+        score: 0,
+        hi: Number(localStorage.getItem("dino-hi") || 0),
+        speed: BASE_SPEED,
+        tick: 0,
+        blinkTick: 0,
       };
-      let dragSource = null;
 
-      const topRow = document.getElementById("topRow");
-      const tableauEl = document.getElementById("tableau");
-      const moveCountEl = document.getElementById("moveCount");
-      const freeCountEl = document.getElementById("freeCount");
-      const remainingCountEl = document.getElementById("remainingCount");
-      const newGameBtn = document.getElementById("newGameBtn");
-      const undoBtn = document.getElementById("undoBtn");
-      const autoBtn = document.getElementById("autoBtn");
+      const input = {
+        up: false,
+        down: false,
+      };
 
-      function createDeck() {
-        const deck = [];
-        suits.forEach((suit) => {
-          ranks.forEach((rank) => {
-            deck.push({
-              suit: suit.name,
-              symbol: suit.symbol,
-              color: suit.color,
-              rank: rank.name,
-              value: rank.value,
-            });
+      const dino = {
+        x: 64,
+        y: GROUND_Y - 44,
+        width: 44,
+        height: 44,
+        duckHeight: 28,
+        vy: 0,
+        grounded: true,
+        ducking: false,
+        frame: 0,
+      };
+
+      const obstacles = [];
+      const clouds = [];
+      const groundSegments = [];
+
+      function rand(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function addCloud() {
+        clouds.push({
+          x: WIDTH + rand(10, 260),
+          y: rand(24, 88),
+          w: rand(42, 68),
+          h: rand(14, 22),
+          speed: rand(0.8, 1.9),
+        });
+      }
+
+      function addGroundSegment(startX) {
+        groundSegments.push({
+          x: startX,
+          len: rand(30, 110),
+        });
+      }
+
+      function addObstacle() {
+        const isBird = state.score > 400 && Math.random() < 0.23;
+        if (isBird) {
+          obstacles.push({
+            type: "bird",
+            x: WIDTH + rand(30, 120),
+            y: GROUND_Y - (Math.random() < 0.5 ? 34 : 64),
+            width: 46,
+            height: 30,
+            wing: 0,
           });
-        });
-        return deck;
-      }
-
-      function shuffle(deck) {
-        for (let i = deck.length - 1; i > 0; i -= 1) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-        return deck;
-      }
-
-      function deal() {
-        state.tableau = Array.from({ length: 8 }, () => []);
-        const deck = shuffle(createDeck());
-        deck.forEach((card, index) => {
-          state.tableau[index % 8].push(card);
-        });
-      }
-
-      function snapshot() {
-        return JSON.parse(
-          JSON.stringify({
-            freeCells: state.freeCells,
-            foundations: state.foundations,
-            tableau: state.tableau,
-            moveCount: state.moveCount,
-          })
-        );
-      }
-
-      function restore(snap) {
-        state.freeCells = snap.freeCells;
-        state.foundations = snap.foundations;
-        state.tableau = snap.tableau;
-        state.moveCount = snap.moveCount;
-      }
-
-      function pushHistory() {
-        state.history.push(snapshot());
-        if (state.history.length > 200) {
-          state.history.shift();
-        }
-      }
-
-      function isOppositeColor(cardA, cardB) {
-        return cardA.color !== cardB.color;
-      }
-
-      function canStackOnTableau(card, targetCard) {
-        if (!targetCard) {
-          return true;
-        }
-        return isOppositeColor(card, targetCard) && card.value + 1 === targetCard.value;
-      }
-
-      function canMoveToFoundation(card, foundationIndex) {
-        const top = state.foundations[foundationIndex];
-        if (!top) {
-          return card.value === 1;
-        }
-        return top.suit === card.suit && card.value === top.value + 1;
-      }
-
-      function getMaxMovable() {
-        const free = state.freeCells.filter((cell) => !cell).length;
-        const emptyColumns = state.tableau.filter((col) => col.length === 0).length;
-        return (free + 1) * Math.pow(2, emptyColumns);
-      }
-
-      function getTableauStack(columnIndex, cardIndex) {
-        const column = state.tableau[columnIndex];
-        const stack = column.slice(cardIndex);
-        for (let i = 0; i < stack.length - 1; i += 1) {
-          if (!canStackOnTableau(stack[i], stack[i + 1])) {
-            return null;
-          }
-        }
-        return stack;
-      }
-
-      function moveStackToTableau(source, targetColumn) {
-        const stack = getTableauStack(source.column, source.cardIndex);
-        if (!stack) return false;
-        if (stack.length > getMaxMovable()) return false;
-
-        const targetCol = state.tableau[targetColumn];
-        const targetTop = targetCol[targetCol.length - 1];
-        if (!canStackOnTableau(stack[0], targetTop)) return false;
-
-        pushHistory();
-        state.tableau[targetColumn] = targetCol.concat(stack);
-        state.tableau[source.column] = state.tableau[source.column].slice(0, source.cardIndex);
-        state.moveCount += 1;
-        return true;
-      }
-
-      function removeCardFromSource(source) {
-        if (source.type === "free") {
-          state.freeCells[source.index] = null;
-        } else if (source.type === "foundation") {
-          state.foundations[source.index] = null;
-        } else if (source.type === "tableau") {
-          state.tableau[source.column].pop();
-        }
-      }
-
-      function moveSingleCard(source, target) {
-        const card = source.card;
-        if (!card) return false;
-
-        if (source.type === "tableau") {
-          const col = state.tableau[source.column];
-          if (col[col.length - 1] !== card) return false;
-        }
-
-        if (target.type === "foundation") {
-          if (!canMoveToFoundation(card, target.index)) return false;
-          pushHistory();
-          state.foundations[target.index] = card;
-          removeCardFromSource(source);
-          state.moveCount += 1;
-          return true;
-        }
-
-        if (target.type === "free") {
-          if (state.freeCells[target.index]) return false;
-          pushHistory();
-          state.freeCells[target.index] = card;
-          removeCardFromSource(source);
-          state.moveCount += 1;
-          return true;
-        }
-
-        if (target.type === "tableau") {
-          const col = state.tableau[target.index];
-          const top = col[col.length - 1];
-          if (!canStackOnTableau(card, top)) return false;
-          pushHistory();
-          state.tableau[target.index].push(card);
-          removeCardFromSource(source);
-          state.moveCount += 1;
-          return true;
-        }
-
-        return false;
-      }
-
-      function autoMoveOnce() {
-        let moved = false;
-
-        state.tableau.forEach((col, colIndex) => {
-          if (col.length === 0) return;
-          const card = col[col.length - 1];
-          const index = suits.findIndex((s) => s.name === card.suit);
-          if (canMoveToFoundation(card, index)) {
-            pushHistory();
-            state.foundations[index] = card;
-            state.tableau[colIndex].pop();
-            state.moveCount += 1;
-            moved = true;
-          }
-        });
-
-        state.freeCells.forEach((card, freeIndex) => {
-          if (!card) return;
-          const index = suits.findIndex((s) => s.name === card.suit);
-          if (canMoveToFoundation(card, index)) {
-            pushHistory();
-            state.foundations[index] = card;
-            state.freeCells[freeIndex] = null;
-            state.moveCount += 1;
-            moved = true;
-          }
-        });
-
-        return moved;
-      }
-
-      function autoMoveAll() {
-        let moved = false;
-        while (autoMoveOnce()) {
-          moved = true;
-        }
-        return moved;
-      }
-
-      function clearSelection() {
-        state.selection = null;
-      }
-
-      function selectCard(source, cardIndex) {
-        state.selection = { ...source, cardIndex };
-      }
-
-      function handleCardClick(source, cardIndex, hasCard) {
-        if (!hasCard) {
-          clearSelection();
-          render();
           return;
         }
 
-        if (!state.selection) {
-          selectCard(source, cardIndex);
-          render();
+        const kind = Math.random() < 0.55 ? "small" : "big";
+        if (kind === "small") {
+          obstacles.push({
+            type: "cactus",
+            x: WIDTH + rand(30, 120),
+            y: GROUND_Y - 38,
+            width: 26,
+            height: 38,
+          });
           return;
         }
 
-        const selection = state.selection;
-        const same = JSON.stringify(selection) === JSON.stringify({ ...source, cardIndex });
-        if (same) {
-          clearSelection();
-          render();
-          return;
-        }
-
-        selectCard(source, cardIndex);
-        render();
-      }
-
-      function getSourceFromSelection(selection) {
-        if (selection.type === "tableau") {
-          return {
-            type: "tableau",
-            column: selection.column,
-            cardIndex: selection.cardIndex,
-            card: state.tableau[selection.column][selection.cardIndex],
-          };
-        }
-        if (selection.type === "free") {
-          return { type: "free", index: selection.index, card: state.freeCells[selection.index] };
-        }
-        return { type: "foundation", index: selection.index, card: state.foundations[selection.index] };
-      }
-
-      function isSameSelection(source, cardIndex) {
-        if (!state.selection) return false;
-        if (state.selection.type !== source.type) return false;
-        if (source.type === "tableau") {
-          return state.selection.column === source.column && state.selection.cardIndex === cardIndex;
-        }
-        return state.selection.index === source.index;
-      }
-
-      function buildPips(card) {
-        if (card.value > 10) {
-          return `<div><div class="face-rank">${card.rank}</div><div class="face-suit">${card.symbol}</div></div>`;
-        }
-        const pips = Array.from({ length: card.value }, () => `<span class="pip">${card.symbol}</span>`).join("");
-        return `<div class="pips" data-count="${card.value}">${pips}</div>`;
-      }
-
-      function renderCard(card, source, cardIndex = 0) {
-        const cardEl = document.createElement("div");
-        cardEl.className = `card ${card.color}${source.type === "tableau" ? " tableau-card" : ""}`;
-        cardEl.innerHTML = `
-          <div class="corner top">${card.rank}<span class="small-suit">${card.symbol}</span></div>
-          <div class="center">${buildPips(card)}</div>
-          <div class="corner bottom">${card.rank}<span class="small-suit">${card.symbol}</span></div>
-        `;
-
-        if (state.selection && isSameSelection(source, cardIndex)) {
-          cardEl.classList.add("selected");
-        }
-
-        cardEl.addEventListener("click", (event) => {
-          event.stopPropagation();
-          handleCardClick(source, cardIndex, true);
+        obstacles.push({
+          type: "cactus",
+          x: WIDTH + rand(30, 120),
+          y: GROUND_Y - 54,
+          width: 34,
+          height: 54,
         });
+      }
 
-        cardEl.setAttribute("draggable", "true");
-        cardEl.addEventListener("dragstart", (event) => {
-          dragSource = { ...source, cardIndex };
-          cardEl.classList.add("dragging");
-          event.dataTransfer.setData("text/plain", "card");
-        });
+      function resetWorld() {
+        obstacles.length = 0;
+        clouds.length = 0;
+        groundSegments.length = 0;
+        for (let i = 0; i < 6; i += 1) addCloud();
+        let gx = 0;
+        while (gx < WIDTH + 120) {
+          addGroundSegment(gx);
+          gx += rand(38, 140);
+        }
+      }
 
-        cardEl.addEventListener("dragend", () => {
-          cardEl.classList.remove("dragging");
-          dragSource = null;
-        });
+      function restart() {
+        state.running = false;
+        state.gameOver = false;
+        state.score = 0;
+        state.speed = BASE_SPEED;
+        state.tick = 0;
+        state.blinkTick = 0;
+        dino.y = GROUND_Y - 44;
+        dino.vy = 0;
+        dino.grounded = true;
+        dino.ducking = false;
+        resetWorld();
+      }
 
-        cardEl.addEventListener("dblclick", (event) => {
-          event.stopPropagation();
-          if (source.type === "tableau") {
-            const column = state.tableau[source.column];
-            if (column[column.length - 1] !== card) return;
+      function beginGame() {
+        if (state.gameOver) {
+          restart();
+        }
+        state.running = true;
+      }
+
+      function jump() {
+        if (!dino.grounded) return;
+        dino.vy = -JUMP_POWER;
+        dino.grounded = false;
+      }
+
+      function updateDino() {
+        dino.ducking = input.down && dino.grounded;
+        dino.height = dino.ducking ? dino.duckHeight : 44;
+
+        if (!dino.grounded) {
+          dino.vy += GRAVITY;
+          dino.y += dino.vy;
+          const groundY = GROUND_Y - dino.height;
+          if (dino.y >= groundY) {
+            dino.y = groundY;
+            dino.vy = 0;
+            dino.grounded = true;
           }
-          const foundationIndex = suits.findIndex((s) => s.name === card.suit);
-          const from = getSourceFromSelection({ ...source, cardIndex });
-          if (moveSingleCard(from, { type: "foundation", index: foundationIndex })) {
-            clearSelection();
-            render();
-          }
-        });
+        } else {
+          dino.y = GROUND_Y - dino.height;
+        }
 
-        return cardEl;
+        if (state.running && !state.gameOver) {
+          dino.frame = (dino.frame + 1) % 12;
+        }
       }
 
-      function renderTopRow() {
-        topRow.innerHTML = "";
-
-        state.freeCells.forEach((card, index) => {
-          const cell = document.createElement("div");
-          cell.className = "cell";
-          cell.dataset.type = "free";
-          cell.dataset.index = index;
-          cell.innerHTML = `<div class="cell-label">FREE</div>`;
-
-          if (card) {
-            cell.appendChild(renderCard(card, { type: "free", index }));
-          }
-
-          cell.addEventListener("click", () => {
-            handleCardClick({ type: "free", index }, 0, Boolean(card));
-          });
-
-          cell.addEventListener("dragover", (event) => {
-            event.preventDefault();
-            cell.classList.add("drop-ready");
-          });
-          cell.addEventListener("dragleave", () => cell.classList.remove("drop-ready"));
-          cell.addEventListener("drop", () => {
-            cell.classList.remove("drop-ready");
-            if (!dragSource) return;
-
-            if (dragSource.type === "tableau") {
-              const col = state.tableau[dragSource.column];
-              if (col[col.length - 1] !== col[dragSource.cardIndex]) {
-                dragSource = null;
-                return;
-              }
-            }
-
-            moveSingleCard(getSourceFromSelection(dragSource), { type: "free", index });
-            dragSource = null;
-            clearSelection();
-            render();
-          });
-
-          topRow.appendChild(cell);
-        });
-
-        const separator = document.createElement("div");
-        separator.className = "separator";
-        topRow.appendChild(separator);
-
-        state.foundations.forEach((card, index) => {
-          const foundation = document.createElement("div");
-          foundation.className = "foundation";
-          foundation.dataset.type = "foundation";
-          foundation.dataset.index = index;
-          foundation.innerHTML = `<div class="cell-label">${suits[index].symbol}</div>`;
-
-          if (card) {
-            foundation.appendChild(renderCard(card, { type: "foundation", index }));
-          }
-
-          foundation.addEventListener("click", () => {
-            handleCardClick({ type: "foundation", index }, 0, Boolean(card));
-          });
-
-          foundation.addEventListener("dragover", (event) => {
-            event.preventDefault();
-            foundation.classList.add("drop-ready");
-          });
-          foundation.addEventListener("dragleave", () => foundation.classList.remove("drop-ready"));
-          foundation.addEventListener("drop", () => {
-            foundation.classList.remove("drop-ready");
-            if (!dragSource) return;
-
-            if (dragSource.type === "tableau") {
-              const col = state.tableau[dragSource.column];
-              if (col[col.length - 1] !== col[dragSource.cardIndex]) {
-                dragSource = null;
-                return;
-              }
-            }
-
-            moveSingleCard(getSourceFromSelection(dragSource), { type: "foundation", index });
-            dragSource = null;
-            clearSelection();
-            render();
-          });
-
-          topRow.appendChild(foundation);
-        });
+      function updateClouds() {
+        for (const c of clouds) {
+          c.x -= c.speed;
+        }
+        if (clouds.length && clouds[0].x + clouds[0].w < -20) {
+          clouds.shift();
+          addCloud();
+        }
       }
 
-      function renderTableau() {
-        tableauEl.innerHTML = "";
-        const stackGap =
-          Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stack-gap"), 10) || 34;
-
-        state.tableau.forEach((col, colIndex) => {
-          const column = document.createElement("div");
-          column.className = "column";
-          column.dataset.column = colIndex;
-
-          column.addEventListener("click", () => {
-            const hasCard = col.length > 0;
-            const index = hasCard ? col.length - 1 : 0;
-            handleCardClick({ type: "tableau", column: colIndex }, index, hasCard);
-          });
-
-          column.addEventListener("dragover", (event) => {
-            event.preventDefault();
-            column.classList.add("drop-ready");
-          });
-          column.addEventListener("dragleave", () => column.classList.remove("drop-ready"));
-          column.addEventListener("drop", () => {
-            column.classList.remove("drop-ready");
-            if (!dragSource) return;
-
-            const selection = dragSource;
-            const isStackSelection =
-              selection.type === "tableau" && selection.cardIndex < state.tableau[selection.column].length - 1;
-
-            if (isStackSelection) {
-              moveStackToTableau(selection, colIndex);
-            } else {
-              moveSingleCard(getSourceFromSelection(selection), { type: "tableau", index: colIndex });
-            }
-
-            dragSource = null;
-            clearSelection();
-            render();
-          });
-
-          if (col.length === 0) {
-            const empty = document.createElement("div");
-            empty.className = "empty-msg";
-            empty.textContent = "빈 열";
-            column.appendChild(empty);
-          }
-
-          col.forEach((card, cardIndex) => {
-            const cardEl = renderCard(card, { type: "tableau", column: colIndex }, cardIndex);
-            cardEl.style.top = `${cardIndex * stackGap}px`;
-            column.appendChild(cardEl);
-          });
-
-          tableauEl.appendChild(column);
-        });
+      function updateGround() {
+        for (const g of groundSegments) {
+          g.x -= state.speed;
+        }
+        while (groundSegments.length && groundSegments[0].x + groundSegments[0].len < -10) {
+          groundSegments.shift();
+        }
+        if (!groundSegments.length || groundSegments[groundSegments.length - 1].x < WIDTH - 30) {
+          addGroundSegment(WIDTH + rand(12, 80));
+        }
       }
 
-      function updateStatus() {
-        moveCountEl.textContent = state.moveCount;
-        const freeUsed = state.freeCells.filter(Boolean).length;
-        freeCountEl.textContent = `${4 - freeUsed} / 4`;
-        const remaining =
-          state.tableau.reduce((acc, col) => acc + col.length, 0) +
-          state.freeCells.filter(Boolean).length;
-        remainingCountEl.textContent = remaining;
+      function updateObstacles() {
+        if (!state.running || state.gameOver) return;
+
+        for (const o of obstacles) {
+          o.x -= state.speed;
+          if (o.type === "bird") {
+            o.wing = (o.wing + 1) % 18;
+          }
+        }
+        while (obstacles.length && obstacles[0].x + obstacles[0].width < -20) {
+          obstacles.shift();
+        }
+
+        const last = obstacles[obstacles.length - 1];
+        if (!last || WIDTH - last.x > rand(210, 370) - state.speed * 8) {
+          addObstacle();
+        }
+      }
+
+      function getDinoHitbox() {
+        const padX = dino.ducking ? 6 : 8;
+        const padY = dino.ducking ? 5 : 4;
+        return {
+          x: dino.x + padX,
+          y: dino.y + padY,
+          w: dino.width - padX * 2,
+          h: dino.height - padY * 2,
+        };
+      }
+
+      function getObstacleHitbox(o) {
+        if (o.type === "bird") {
+          return { x: o.x + 4, y: o.y + 5, w: o.width - 8, h: o.height - 10 };
+        }
+        return { x: o.x + 3, y: o.y + 2, w: o.width - 6, h: o.height - 4 };
+      }
+
+      function intersects(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+
+      function checkCollision() {
+        const db = getDinoHitbox();
+        for (const o of obstacles) {
+          if (intersects(db, getObstacleHitbox(o))) {
+            state.gameOver = true;
+            state.running = false;
+            state.hi = Math.max(state.hi, Math.floor(state.score));
+            localStorage.setItem("dino-hi", String(state.hi));
+            return;
+          }
+        }
+      }
+
+      function updateScore() {
+        if (!state.running || state.gameOver) return;
+        state.score += 0.1;
+        state.speed = BASE_SPEED + Math.min(6, Math.floor(state.score) / 180);
+      }
+
+      function drawCloud(c) {
+        ctx.fillStyle = "#d6d6d6";
+        ctx.fillRect(c.x, c.y + 8, c.w, c.h - 8);
+        ctx.fillRect(c.x + 8, c.y, c.w * 0.45, c.h * 0.7);
+        ctx.fillRect(c.x + c.w * 0.42, c.y + 2, c.w * 0.46, c.h * 0.8);
+      }
+
+      function drawGround() {
+        ctx.strokeStyle = "#9e9e9e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y + 0.5);
+        ctx.lineTo(WIDTH, GROUND_Y + 0.5);
+        ctx.stroke();
+
+        ctx.fillStyle = "#bdbdbd";
+        for (const g of groundSegments) {
+          ctx.fillRect(g.x, GROUND_Y + 6, g.len, 2);
+        }
+      }
+
+      function drawDino() {
+        const runAlt = dino.frame < 6;
+        const x = dino.x;
+        const y = dino.y;
+        const h = dino.height;
+        ctx.fillStyle = "#535353";
+
+        if (dino.ducking) {
+          ctx.fillRect(x + 2, y + 8, 34, 16);
+          ctx.fillRect(x + 28, y + 2, 12, 14);
+          ctx.fillRect(x + 34, y + 5, 10, 8);
+          ctx.fillRect(x + 8, y + 22, 8, 6);
+          ctx.fillRect(x + (runAlt ? 20 : 24), y + 22, 8, 6);
+        } else {
+          ctx.fillRect(x + 8, y + 4, 20, h - 8);
+          ctx.fillRect(x + 24, y, 16, 16);
+          ctx.fillRect(x + 34, y + 4, 10, 8);
+          ctx.fillRect(x + 12, y + h - 6, 8, 6);
+          ctx.fillRect(x + (runAlt ? 24 : 20), y + h - 6, 8, 6);
+          ctx.fillStyle = "#f7f7f7";
+          ctx.fillRect(x + 32, y + 4, 3, 3);
+          ctx.fillStyle = "#535353";
+        }
+      }
+
+      function drawCactus(o) {
+        ctx.fillStyle = "#535353";
+        ctx.fillRect(o.x + 6, o.y, o.width - 12, o.height);
+        ctx.fillRect(o.x, o.y + 12, 8, 12);
+        ctx.fillRect(o.x + o.width - 8, o.y + 18, 8, 14);
+      }
+
+      function drawBird(o) {
+        const wingUp = o.wing < 9;
+        ctx.fillStyle = "#535353";
+        ctx.fillRect(o.x + 10, o.y + 10, 26, 10);
+        ctx.fillRect(o.x + 34, o.y + 8, 10, 8);
+        ctx.fillRect(o.x + 2, o.y + (wingUp ? 6 : 12), 10, wingUp ? 6 : 12);
+        ctx.fillRect(o.x + 20, o.y + (wingUp ? 2 : 14), 10, wingUp ? 6 : 6);
+      }
+
+      function drawObstacles() {
+        for (const o of obstacles) {
+          if (o.type === "bird") drawBird(o);
+          else drawCactus(o);
+        }
+      }
+
+      function drawScore() {
+        const scoreText = String(Math.floor(state.score)).padStart(5, "0");
+        const hiText = String(Math.floor(state.hi)).padStart(5, "0");
+        ctx.fillStyle = "#6f6f6f";
+        ctx.font = "20px monospace";
+        ctx.textAlign = "right";
+        ctx.fillText(`HI ${hiText}  ${scoreText}`, WIDTH - 18, 28);
+      }
+
+      function drawStartPrompt() {
+        if (state.running || state.gameOver) return;
+        state.blinkTick = (state.blinkTick + 1) % 80;
+        if (state.blinkTick > 40) return;
+        ctx.fillStyle = "#8a8a8a";
+        ctx.font = "18px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("PRESS SPACE TO START", WIDTH / 2, 82);
+      }
+
+      function drawGameOver() {
+        if (!state.gameOver) return;
+        ctx.fillStyle = "#535353";
+        ctx.font = "28px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", WIDTH / 2, 78);
+
+        ctx.font = "16px monospace";
+        ctx.fillText("SPACE TO RESTART", WIDTH / 2, 106);
+
+        const bx = WIDTH / 2 - 20;
+        const by = 120;
+        ctx.strokeStyle = "#777";
+        ctx.strokeRect(bx, by, 40, 24);
+        ctx.beginPath();
+        ctx.moveTo(bx + 20, by + 5);
+        ctx.lineTo(bx + 20, by + 19);
+        ctx.lineTo(bx + 9, by + 12);
+        ctx.stroke();
       }
 
       function render() {
-        renderTopRow();
-        renderTableau();
-        updateStatus();
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        for (const c of clouds) drawCloud(c);
+        drawGround();
+        drawDino();
+        drawObstacles();
+        drawScore();
+        drawStartPrompt();
+        drawGameOver();
       }
 
-      function newGame() {
-        state.freeCells = Array(4).fill(null);
-        state.foundations = Array(4).fill(null);
-        state.moveCount = 0;
-        state.history = [];
-        state.selection = null;
-        deal();
+      function update() {
+        state.tick += 1;
+        updateClouds();
+        updateDino();
+        updateGround();
+        updateObstacles();
+        checkCollision();
+        updateScore();
+      }
+
+      function loop() {
+        update();
         render();
+        requestAnimationFrame(loop);
       }
 
-      newGameBtn.addEventListener("click", newGame);
-      undoBtn.addEventListener("click", () => {
-        const snap = state.history.pop();
-        if (snap) {
-          restore(snap);
-          clearSelection();
-          render();
+      window.addEventListener("keydown", (e) => {
+        if (e.code === "Space" || e.code === "ArrowUp") {
+          e.preventDefault();
+          if (state.gameOver || !state.running) beginGame();
+          jump();
+          input.up = true;
+        }
+        if (e.code === "ArrowDown") {
+          e.preventDefault();
+          input.down = true;
+          if (!state.running && !state.gameOver) beginGame();
         }
       });
-      autoBtn.addEventListener("click", () => {
-        autoMoveAll();
-        clearSelection();
-        render();
+
+      window.addEventListener("keyup", (e) => {
+        if (e.code === "Space" || e.code === "ArrowUp") input.up = false;
+        if (e.code === "ArrowDown") input.down = false;
       });
 
-      document.title = `FreeCell v${VERSION}`;
-      newGame();
+      restart();
+      loop();
     </script>
   </body>
 </html>
