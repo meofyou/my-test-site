@@ -3,20 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FreeCell on NAS</title>
+    <title>FreeCell v1.2.0</title>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Spectral:wght@400;600&display=swap");
 
       :root {
-        --bg-1: #0b1221;
-        --bg-2: #0e1b2e;
-        --bg-3: #182b3f;
-        --card: #f6f0e8;
+        --bg-1: #08111f;
+        --bg-2: #0d2137;
+        --bg-3: #18344a;
+        --card: #f8f2ea;
         --card-ink: #111217;
         --accent: #f0b35a;
         --accent-2: #6bd1b6;
-        --outline: rgba(255, 255, 255, 0.2);
-        --shadow: rgba(4, 10, 24, 0.45);
+        --outline: rgba(255, 255, 255, 0.22);
+        --shadow: rgba(4, 10, 24, 0.48);
         --card-w: 96px;
         --card-h: 132px;
         --col-w: 116px;
@@ -31,7 +31,7 @@
       body {
         margin: 0;
         min-height: 100vh;
-        color: #e9eef6;
+        color: #edf3fb;
         font-family: "Space Grotesk", "Segoe UI", sans-serif;
         background: radial-gradient(circle at 10% 20%, rgba(107, 209, 182, 0.18), transparent 40%),
           radial-gradient(circle at 80% 0%, rgba(240, 179, 90, 0.2), transparent 35%),
@@ -68,7 +68,7 @@
         margin: 0;
         font-family: "Spectral", "Georgia", serif;
         font-size: 15px;
-        opacity: 0.82;
+        opacity: 0.86;
       }
 
       .controls {
@@ -80,18 +80,19 @@
       button {
         appearance: none;
         border: 1px solid var(--outline);
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.09);
         color: inherit;
         padding: 10px 16px;
         border-radius: 999px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
-        transition: transform 0.15s ease, background 0.2s ease;
+        transition: transform 0.15s ease, background 0.2s ease, border 0.2s ease;
       }
 
       button:hover {
         transform: translateY(-1px);
-        background: rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.17);
+        border-color: rgba(255, 255, 255, 0.35);
       }
 
       .status {
@@ -104,7 +105,7 @@
       .status-card {
         padding: 14px 16px;
         border-radius: 14px;
-        background: rgba(10, 16, 30, 0.6);
+        background: rgba(8, 16, 30, 0.66);
         border: 1px solid var(--outline);
         box-shadow: 0 10px 30px var(--shadow);
         font-size: 13px;
@@ -121,14 +122,14 @@
         display: grid;
         gap: 18px;
         overflow-x: auto;
-        padding-bottom: 6px;
+        padding: 0 0 8px;
       }
 
       .top-row {
         display: grid;
         grid-template-columns: repeat(4, minmax(var(--col-w), 1fr)) 20px repeat(4, minmax(var(--col-w), 1fr));
         gap: var(--gutter);
-        align-items: center;
+        align-items: start;
         min-width: calc(8 * var(--col-w) + 7 * var(--gutter) + 20px);
       }
 
@@ -138,27 +139,28 @@
 
       .cell,
       .foundation {
-        min-height: 120px;
+        min-height: calc(var(--card-h) + 18px);
         min-width: var(--col-w);
         border-radius: 14px;
-        border: 1px dashed rgba(255, 255, 255, 0.25);
-        background: rgba(13, 22, 38, 0.55);
+        border: 1px dashed rgba(255, 255, 255, 0.28);
+        background: rgba(13, 22, 38, 0.6);
         display: grid;
         place-items: center;
         position: relative;
-        transition: border 0.2s ease, box-shadow 0.2s ease;
+        padding: 9px;
+        transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
       }
 
       .foundation {
         border-style: solid;
-        background: rgba(240, 179, 90, 0.08);
+        background: rgba(240, 179, 90, 0.12);
       }
 
       .cell-label {
         font-size: 11px;
         letter-spacing: 0.2em;
         text-transform: uppercase;
-        opacity: 0.6;
+        opacity: 0.62;
         position: absolute;
         top: 8px;
         left: 12px;
@@ -175,9 +177,9 @@
         min-height: 460px;
         min-width: var(--col-w);
         border-radius: 16px;
-        border: 1px dashed rgba(255, 255, 255, 0.18);
+        border: 1px dashed rgba(255, 255, 255, 0.2);
         padding: 12px 8px 16px;
-        background: rgba(10, 16, 30, 0.55);
+        background: rgba(10, 16, 30, 0.6);
         position: relative;
         transition: border 0.2s ease, box-shadow 0.2s ease;
       }
@@ -185,62 +187,120 @@
       .card {
         width: var(--card-w);
         height: var(--card-h);
-        padding: 12px 10px;
         border-radius: 12px;
         background: var(--card);
         color: var(--card-ink);
-        font-weight: 700;
+        box-shadow: 0 12px 26px rgba(5, 10, 20, 0.34);
+        border: 2px solid rgba(8, 12, 20, 0.12);
+        transition: transform 0.15s ease, border 0.2s ease, box-shadow 0.2s ease;
+        cursor: grab;
         display: grid;
-        justify-items: start;
-        align-content: space-between;
-        box-shadow: 0 10px 24px rgba(5, 10, 20, 0.25);
-        border: 2px solid rgba(0, 0, 0, 0.08);
-        transition: transform 0.15s ease, border 0.2s ease;
+        grid-template-rows: auto 1fr auto;
+        padding: 9px 10px;
+        position: relative;
+        z-index: 1;
+        user-select: none;
+      }
+
+      .tableau-card {
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
-        background-size: cover;
-        background-position: center;
-        cursor: grab;
-        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+      }
+
+      .card.red {
+        color: #bf2d35;
+      }
+
+      .card.black {
+        color: #151a25;
       }
 
       .card .corner {
         font-size: 18px;
-        letter-spacing: -0.02em;
+        line-height: 1;
+        font-weight: 700;
+        display: grid;
+        justify-items: start;
+        gap: 1px;
       }
 
-      .card .suit {
+      .card .corner .small-suit {
+        font-size: 16px;
+      }
+
+      .card .corner.bottom {
+        justify-self: end;
+        transform: rotate(180deg);
+      }
+
+      .card .center {
+        display: grid;
+        place-items: center;
+      }
+
+      .card .pips {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2px 8px;
+        width: 100%;
+        justify-items: center;
+      }
+
+      .card .pip {
+        font-size: 19px;
+        line-height: 1;
+      }
+
+      .card .pips[data-count="1"] {
+        grid-template-columns: 1fr;
+      }
+
+      .card .pips[data-count="3"] .pip:last-child,
+      .card .pips[data-count="5"] .pip:last-child,
+      .card .pips[data-count="7"] .pip:last-child,
+      .card .pips[data-count="9"] .pip:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .card .face-rank {
+        font-size: 38px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .card .face-suit {
         font-size: 22px;
-      }
-
-      .card.red {
-        color: #c8373b;
-      }
-
-      .card.black {
-        color: #1b1f2b;
+        margin-top: 4px;
       }
 
       .card.selected {
         border-color: var(--accent);
+        box-shadow: 0 14px 28px rgba(240, 179, 90, 0.3);
+      }
+
+      .tableau-card.selected {
         transform: translate(-50%, -4px);
       }
 
+      .card.selected:not(.tableau-card) {
+        transform: translateY(-4px);
+      }
+
       .card.dragging {
-        opacity: 0.6;
+        opacity: 0.65;
         cursor: grabbing;
       }
 
       .drop-ready {
-        outline: 2px solid rgba(240, 179, 90, 0.6);
+        outline: 2px solid rgba(240, 179, 90, 0.68);
         outline-offset: -4px;
-        box-shadow: 0 12px 30px rgba(240, 179, 90, 0.18);
+        box-shadow: 0 12px 30px rgba(240, 179, 90, 0.2);
       }
 
       .empty-msg {
         font-size: 12px;
-        opacity: 0.6;
+        opacity: 0.64;
         text-align: center;
         padding: 10px;
       }
@@ -250,7 +310,7 @@
         padding: 16px 18px;
         border-radius: 14px;
         border: 1px solid var(--outline);
-        background: rgba(12, 20, 34, 0.6);
+        background: rgba(12, 20, 34, 0.64);
         font-size: 13px;
         line-height: 1.6;
       }
@@ -285,8 +345,8 @@
     <div class="app">
       <header>
         <div class="title">
-          <h1>FreeCell, NAS Edition</h1>
-          <p>카드를 드래그해서 이동하세요. 클릭은 선택용으로만 동작합니다.</p>
+          <h1>FreeCell v1.2.0</h1>
+          <p>카드를 드래그하거나 클릭해서 이동하세요. 더블클릭하면 가능한 경우 Foundation으로 자동 이동합니다.</p>
         </div>
         <div class="controls">
           <button id="newGameBtn">새 게임</button>
@@ -301,8 +361,8 @@
           <span id="moveCount">0</span>
         </div>
         <div class="status-card">
-          <div>자유 칸</div>
-          <span id="freeCount">4</span>
+          <div>남은 Free Cell</div>
+          <span id="freeCount">4 / 4</span>
         </div>
         <div class="status-card">
           <div>남은 카드</div>
@@ -316,14 +376,15 @@
       </div>
 
       <div class="rules">
-        <b>FreeCell 규칙 요약</b> - 모든 카드를 4개의 <b>Foundation</b>에 무늬별 A~K로 올립니다.
+        <b>FreeCell 규칙 요약</b> - 모든 카드를 4개의 <b>Foundation</b>에 무늬별 A부터 K 순서로 쌓으면 승리입니다.
         <br />
-        <b>Tableau</b>는 색이 번갈아가며 내림차순으로 쌓을 수 있고,
-        <b>Free Cell</b>은 임시 보관 공간입니다. 여러 장 이동은 빈 Free Cell/빈 컬럼 수에 따라 제한됩니다.
+        <b>Tableau</b>에서는 색이 번갈아야 하고 숫자는 내림차순으로만 내려놓을 수 있습니다.
+        <b>Free Cell</b>은 임시 보관 공간이며, 빈 칸 수에 따라 한 번에 이동 가능한 카드 수가 달라집니다.
       </div>
     </div>
 
     <script>
+      const VERSION = "1.2.0";
       const suits = [
         { name: "spades", symbol: "♠", color: "black" },
         { name: "hearts", symbol: "♥", color: "red" },
@@ -361,7 +422,6 @@
       const moveCountEl = document.getElementById("moveCount");
       const freeCountEl = document.getElementById("freeCount");
       const remainingCountEl = document.getElementById("remainingCount");
-
       const newGameBtn = document.getElementById("newGameBtn");
       const undoBtn = document.getElementById("undoBtn");
       const autoBtn = document.getElementById("autoBtn");
@@ -443,31 +503,9 @@
       }
 
       function getMaxMovable() {
-        const free = state.freeCells.filter(Boolean).length;
+        const free = state.freeCells.filter((cell) => !cell).length;
         const emptyColumns = state.tableau.filter((col) => col.length === 0).length;
         return (free + 1) * Math.pow(2, emptyColumns);
-      }
-
-      function cardSvg(card) {
-        const fill = card.color === "red" ? "#c8373b" : "#1b1f2b";
-        const light = card.color === "red" ? "#fde8e8" : "#e9eef6";
-        const svg = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="140" height="190" viewBox="0 0 140 190">
-            <defs>
-              <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#ffffff"/>
-                <stop offset="100%" stop-color="${light}"/>
-              </linearGradient>
-            </defs>
-            <rect x="4" y="4" width="132" height="182" rx="16" fill="url(#g)" stroke="#c9bfb4" stroke-width="2"/>
-            <text x="18" y="28" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}">${card.rank}</text>
-            <text x="18" y="48" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}">${card.symbol}</text>
-            <text x="70" y="118" text-anchor="middle" font-size="68" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}">${card.symbol}</text>
-            <text x="122" y="168" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}" transform="rotate(180 122 168)">${card.rank}</text>
-            <text x="122" y="148" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}" transform="rotate(180 122 148)">${card.symbol}</text>
-          </svg>
-        `;
-        return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
       }
 
       function getTableauStack(columnIndex, cardIndex) {
@@ -483,58 +521,18 @@
 
       function moveStackToTableau(source, targetColumn) {
         const stack = getTableauStack(source.column, source.cardIndex);
-        if (!stack) {
-          return false;
-        }
-        if (stack.length > getMaxMovable()) {
-          return false;
-        }
+        if (!stack) return false;
+        if (stack.length > getMaxMovable()) return false;
+
         const targetCol = state.tableau[targetColumn];
         const targetTop = targetCol[targetCol.length - 1];
-        if (!canStackOnTableau(stack[0], targetTop)) {
-          return false;
-        }
+        if (!canStackOnTableau(stack[0], targetTop)) return false;
+
         pushHistory();
         state.tableau[targetColumn] = targetCol.concat(stack);
         state.tableau[source.column] = state.tableau[source.column].slice(0, source.cardIndex);
         state.moveCount += 1;
         return true;
-      }
-
-      function moveSingleCard(source, target) {
-        const card = source.card;
-        if (!card) return false;
-        if (source.type === "tableau") {
-          const col = state.tableau[source.column];
-          if (col[col.length - 1] !== card) return false;
-        }
-        if (target.type === "foundation") {
-          if (!canMoveToFoundation(card, target.index)) return false;
-          pushHistory();
-          state.foundations[target.index] = card;
-          removeCardFromSource(source);
-          state.moveCount += 1;
-          return true;
-        }
-        if (target.type === "free") {
-          if (state.freeCells[target.index]) return false;
-          pushHistory();
-          state.freeCells[target.index] = card;
-          removeCardFromSource(source);
-          state.moveCount += 1;
-          return true;
-        }
-        if (target.type === "tableau") {
-          const col = state.tableau[target.index];
-          const top = col[col.length - 1];
-          if (!canStackOnTableau(card, top)) return false;
-          pushHistory();
-          state.tableau[target.index].push(card);
-          removeCardFromSource(source);
-          state.moveCount += 1;
-          return true;
-        }
-        return false;
       }
 
       function removeCardFromSource(source) {
@@ -547,8 +545,50 @@
         }
       }
 
+      function moveSingleCard(source, target) {
+        const card = source.card;
+        if (!card) return false;
+
+        if (source.type === "tableau") {
+          const col = state.tableau[source.column];
+          if (col[col.length - 1] !== card) return false;
+        }
+
+        if (target.type === "foundation") {
+          if (!canMoveToFoundation(card, target.index)) return false;
+          pushHistory();
+          state.foundations[target.index] = card;
+          removeCardFromSource(source);
+          state.moveCount += 1;
+          return true;
+        }
+
+        if (target.type === "free") {
+          if (state.freeCells[target.index]) return false;
+          pushHistory();
+          state.freeCells[target.index] = card;
+          removeCardFromSource(source);
+          state.moveCount += 1;
+          return true;
+        }
+
+        if (target.type === "tableau") {
+          const col = state.tableau[target.index];
+          const top = col[col.length - 1];
+          if (!canStackOnTableau(card, top)) return false;
+          pushHistory();
+          state.tableau[target.index].push(card);
+          removeCardFromSource(source);
+          state.moveCount += 1;
+          return true;
+        }
+
+        return false;
+      }
+
       function autoMoveOnce() {
         let moved = false;
+
         state.tableau.forEach((col, colIndex) => {
           if (col.length === 0) return;
           const card = col[col.length - 1];
@@ -561,6 +601,7 @@
             moved = true;
           }
         });
+
         state.freeCells.forEach((card, freeIndex) => {
           if (!card) return;
           const index = suits.findIndex((s) => s.name === card.suit);
@@ -572,6 +613,7 @@
             moved = true;
           }
         });
+
         return moved;
       }
 
@@ -597,11 +639,13 @@
           render();
           return;
         }
+
         if (!state.selection) {
           selectCard(source, cardIndex);
           render();
           return;
         }
+
         const selection = state.selection;
         const same = JSON.stringify(selection) === JSON.stringify({ ...source, cardIndex });
         if (same) {
@@ -609,6 +653,7 @@
           render();
           return;
         }
+
         selectCard(source, cardIndex);
         render();
       }
@@ -628,30 +673,88 @@
         return { type: "foundation", index: selection.index, card: state.foundations[selection.index] };
       }
 
-      function getTargetFromSource(source) {
+      function isSameSelection(source, cardIndex) {
+        if (!state.selection) return false;
+        if (state.selection.type !== source.type) return false;
         if (source.type === "tableau") {
-          return { type: "tableau", index: source.column };
+          return state.selection.column === source.column && state.selection.cardIndex === cardIndex;
         }
-        if (source.type === "free") {
-          return { type: "free", index: source.index };
+        return state.selection.index === source.index;
+      }
+
+      function buildPips(card) {
+        if (card.value > 10) {
+          return `<div><div class="face-rank">${card.rank}</div><div class="face-suit">${card.symbol}</div></div>`;
         }
-        return { type: "foundation", index: source.index };
+        const pips = Array.from({ length: card.value }, () => `<span class="pip">${card.symbol}</span>`).join("");
+        return `<div class="pips" data-count="${card.value}">${pips}</div>`;
+      }
+
+      function renderCard(card, source, cardIndex = 0) {
+        const cardEl = document.createElement("div");
+        cardEl.className = `card ${card.color}${source.type === "tableau" ? " tableau-card" : ""}`;
+        cardEl.innerHTML = `
+          <div class="corner top">${card.rank}<span class="small-suit">${card.symbol}</span></div>
+          <div class="center">${buildPips(card)}</div>
+          <div class="corner bottom">${card.rank}<span class="small-suit">${card.symbol}</span></div>
+        `;
+
+        if (state.selection && isSameSelection(source, cardIndex)) {
+          cardEl.classList.add("selected");
+        }
+
+        cardEl.addEventListener("click", (event) => {
+          event.stopPropagation();
+          handleCardClick(source, cardIndex, true);
+        });
+
+        cardEl.setAttribute("draggable", "true");
+        cardEl.addEventListener("dragstart", (event) => {
+          dragSource = { ...source, cardIndex };
+          cardEl.classList.add("dragging");
+          event.dataTransfer.setData("text/plain", "card");
+        });
+
+        cardEl.addEventListener("dragend", () => {
+          cardEl.classList.remove("dragging");
+          dragSource = null;
+        });
+
+        cardEl.addEventListener("dblclick", (event) => {
+          event.stopPropagation();
+          if (source.type === "tableau") {
+            const column = state.tableau[source.column];
+            if (column[column.length - 1] !== card) return;
+          }
+          const foundationIndex = suits.findIndex((s) => s.name === card.suit);
+          const from = getSourceFromSelection({ ...source, cardIndex });
+          if (moveSingleCard(from, { type: "foundation", index: foundationIndex })) {
+            clearSelection();
+            render();
+          }
+        });
+
+        return cardEl;
       }
 
       function renderTopRow() {
         topRow.innerHTML = "";
+
         state.freeCells.forEach((card, index) => {
           const cell = document.createElement("div");
           cell.className = "cell";
           cell.dataset.type = "free";
           cell.dataset.index = index;
           cell.innerHTML = `<div class="cell-label">FREE</div>`;
+
           if (card) {
             cell.appendChild(renderCard(card, { type: "free", index }));
           }
+
           cell.addEventListener("click", () => {
             handleCardClick({ type: "free", index }, 0, Boolean(card));
           });
+
           cell.addEventListener("dragover", (event) => {
             event.preventDefault();
             cell.classList.add("drop-ready");
@@ -660,6 +763,7 @@
           cell.addEventListener("drop", () => {
             cell.classList.remove("drop-ready");
             if (!dragSource) return;
+
             if (dragSource.type === "tableau") {
               const col = state.tableau[dragSource.column];
               if (col[col.length - 1] !== col[dragSource.cardIndex]) {
@@ -667,11 +771,13 @@
                 return;
               }
             }
+
             moveSingleCard(getSourceFromSelection(dragSource), { type: "free", index });
             dragSource = null;
             clearSelection();
             render();
           });
+
           topRow.appendChild(cell);
         });
 
@@ -685,12 +791,15 @@
           foundation.dataset.type = "foundation";
           foundation.dataset.index = index;
           foundation.innerHTML = `<div class="cell-label">${suits[index].symbol}</div>`;
+
           if (card) {
             foundation.appendChild(renderCard(card, { type: "foundation", index }));
           }
+
           foundation.addEventListener("click", () => {
             handleCardClick({ type: "foundation", index }, 0, Boolean(card));
           });
+
           foundation.addEventListener("dragover", (event) => {
             event.preventDefault();
             foundation.classList.add("drop-ready");
@@ -699,6 +808,7 @@
           foundation.addEventListener("drop", () => {
             foundation.classList.remove("drop-ready");
             if (!dragSource) return;
+
             if (dragSource.type === "tableau") {
               const col = state.tableau[dragSource.column];
               if (col[col.length - 1] !== col[dragSource.cardIndex]) {
@@ -706,11 +816,13 @@
                 return;
               }
             }
+
             moveSingleCard(getSourceFromSelection(dragSource), { type: "foundation", index });
             dragSource = null;
             clearSelection();
             render();
           });
+
           topRow.appendChild(foundation);
         });
       }
@@ -719,15 +831,18 @@
         tableauEl.innerHTML = "";
         const stackGap =
           Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stack-gap"), 10) || 34;
+
         state.tableau.forEach((col, colIndex) => {
           const column = document.createElement("div");
           column.className = "column";
           column.dataset.column = colIndex;
+
           column.addEventListener("click", () => {
             const hasCard = col.length > 0;
             const index = hasCard ? col.length - 1 : 0;
             handleCardClick({ type: "tableau", column: colIndex }, index, hasCard);
           });
+
           column.addEventListener("dragover", (event) => {
             event.preventDefault();
             column.classList.add("drop-ready");
@@ -736,81 +851,37 @@
           column.addEventListener("drop", () => {
             column.classList.remove("drop-ready");
             if (!dragSource) return;
+
             const selection = dragSource;
             const isStackSelection =
               selection.type === "tableau" && selection.cardIndex < state.tableau[selection.column].length - 1;
+
             if (isStackSelection) {
               moveStackToTableau(selection, colIndex);
             } else {
               moveSingleCard(getSourceFromSelection(selection), { type: "tableau", index: colIndex });
             }
+
             dragSource = null;
             clearSelection();
             render();
           });
+
           if (col.length === 0) {
             const empty = document.createElement("div");
             empty.className = "empty-msg";
-            empty.textContent = "비어 있음";
+            empty.textContent = "빈 열";
             column.appendChild(empty);
           }
+
           col.forEach((card, cardIndex) => {
             const cardEl = renderCard(card, { type: "tableau", column: colIndex }, cardIndex);
             cardEl.style.top = `${cardIndex * stackGap}px`;
             column.appendChild(cardEl);
           });
+
           tableauEl.appendChild(column);
         });
-      }
-
-      function renderCard(card, source, cardIndex = 0) {
-        const cardEl = document.createElement("div");
-        cardEl.className = `card ${card.color}`;
-        cardEl.style.backgroundImage = `url("${cardSvg(card)}")`;
-        cardEl.innerHTML = `
-          <span class="corner">${card.rank}</span>
-          <span class="suit">${card.symbol}</span>
-        `;
-        if (state.selection && isSameSelection(source, cardIndex)) {
-          cardEl.classList.add("selected");
-        }
-        cardEl.addEventListener("click", (event) => {
-          event.stopPropagation();
-          handleCardClick(source, cardIndex, true);
-        });
-        cardEl.setAttribute("draggable", "true");
-        cardEl.addEventListener("dragstart", (event) => {
-          dragSource = { ...source, cardIndex };
-          cardEl.classList.add("dragging");
-          event.dataTransfer.setData("text/plain", "card");
-        });
-        cardEl.addEventListener("dragend", () => {
-          cardEl.classList.remove("dragging");
-          dragSource = null;
-        });
-        cardEl.addEventListener("dblclick", (event) => {
-          event.stopPropagation();
-          if (source.type === "tableau") {
-            const column = state.tableau[source.column];
-            if (column[column.length - 1] !== card) return;
-          }
-          const index = suits.findIndex((s) => s.name === card.suit);
-          const from = getSourceFromSelection({ ...source, cardIndex });
-          if (moveSingleCard(from, { type: "foundation", index })) {
-            clearSelection();
-            render();
-          }
-        });
-        return cardEl;
-      }
-
-      function isSameSelection(source, cardIndex) {
-        if (!state.selection) return false;
-        if (state.selection.type !== source.type) return false;
-        if (source.type === "tableau") {
-          return state.selection.column === source.column && state.selection.cardIndex === cardIndex;
-        }
-        return state.selection.index === source.index;
       }
 
       function updateStatus() {
@@ -854,6 +925,7 @@
         render();
       });
 
+      document.title = `FreeCell v${VERSION}`;
       newGame();
     </script>
   </body>
