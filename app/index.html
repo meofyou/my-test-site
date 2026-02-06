@@ -3,10 +3,723 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>NAS Test Site</title>
+    <title>FreeCell on NAS</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Spectral:wght@400;600&display=swap");
+
+      :root {
+        --bg-1: #0b1221;
+        --bg-2: #0e1b2e;
+        --bg-3: #182b3f;
+        --card: #f6f0e8;
+        --card-ink: #111217;
+        --accent: #f0b35a;
+        --accent-2: #6bd1b6;
+        --outline: rgba(255, 255, 255, 0.2);
+        --shadow: rgba(4, 10, 24, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: #e9eef6;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        background: radial-gradient(circle at 10% 20%, rgba(107, 209, 182, 0.18), transparent 40%),
+          radial-gradient(circle at 80% 0%, rgba(240, 179, 90, 0.2), transparent 35%),
+          linear-gradient(160deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+      }
+
+      .app {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+      }
+
+      .title {
+        display: grid;
+        gap: 6px;
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 44px);
+        letter-spacing: -0.02em;
+      }
+
+      .title p {
+        margin: 0;
+        font-family: "Spectral", "Georgia", serif;
+        font-size: 15px;
+        opacity: 0.82;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid var(--outline);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        padding: 10px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .status {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .status-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(10, 16, 30, 0.6);
+        border: 1px solid var(--outline);
+        box-shadow: 0 10px 30px var(--shadow);
+        font-size: 13px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .status-card span {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .board {
+        display: grid;
+        gap: 18px;
+      }
+
+      .top-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(90px, 1fr)) 20px repeat(4, minmax(90px, 1fr));
+        gap: 14px;
+        align-items: center;
+      }
+
+      .separator {
+        height: 60px;
+      }
+
+      .cell,
+      .foundation {
+        min-height: 110px;
+        border-radius: 14px;
+        border: 1px dashed rgba(255, 255, 255, 0.25);
+        background: rgba(13, 22, 38, 0.55);
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+
+      .foundation {
+        border-style: solid;
+        background: rgba(240, 179, 90, 0.08);
+      }
+
+      .cell-label {
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        opacity: 0.6;
+        position: absolute;
+        top: 8px;
+        left: 12px;
+      }
+
+      .tableau {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(90px, 1fr));
+        gap: 14px;
+      }
+
+      .column {
+        min-height: 460px;
+        border-radius: 16px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        padding: 10px 8px 16px;
+        background: rgba(10, 16, 30, 0.55);
+        position: relative;
+      }
+
+      .card {
+        width: 100%;
+        padding: 10px 10px 12px;
+        border-radius: 12px;
+        background: var(--card);
+        color: var(--card-ink);
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 10px 24px rgba(5, 10, 20, 0.25);
+        border: 2px solid transparent;
+        transition: transform 0.15s ease, border 0.2s ease;
+        position: absolute;
+        left: 8px;
+        right: 8px;
+      }
+
+      .card .suit {
+        font-size: 18px;
+      }
+
+      .card.red {
+        color: #c8373b;
+      }
+
+      .card.black {
+        color: #1b1f2b;
+      }
+
+      .card.selected {
+        border-color: var(--accent);
+        transform: translateY(-4px);
+      }
+
+      .card.hint {
+        border-color: var(--accent-2);
+      }
+
+      .empty-msg {
+        font-size: 12px;
+        opacity: 0.55;
+        text-align: center;
+        padding: 10px;
+      }
+
+      .rules {
+        margin-top: 22px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        border: 1px solid var(--outline);
+        background: rgba(12, 20, 34, 0.6);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .rules b {
+        color: var(--accent);
+      }
+
+      @media (max-width: 900px) {
+        .top-row {
+          grid-template-columns: repeat(4, minmax(70px, 1fr));
+          gap: 10px;
+        }
+
+        .separator {
+          display: none;
+        }
+
+        .tableau {
+          grid-template-columns: repeat(4, minmax(70px, 1fr));
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1>Hello from Synology NAS Docker 👋</h1>
-    <p>Version 2 deployed to NAS</p>
+    <div class="app">
+      <header>
+        <div class="title">
+          <h1>FreeCell, NAS Edition</h1>
+          <p>카드를 클릭해서 선택하고 이동할 위치를 다시 클릭하세요.</p>
+        </div>
+        <div class="controls">
+          <button id="newGameBtn">새 게임</button>
+          <button id="undoBtn">되돌리기</button>
+          <button id="autoBtn">자동 이동</button>
+        </div>
+      </header>
+
+      <section class="status">
+        <div class="status-card">
+          <div>이동 횟수</div>
+          <span id="moveCount">0</span>
+        </div>
+        <div class="status-card">
+          <div>자유 칸</div>
+          <span id="freeCount">4</span>
+        </div>
+        <div class="status-card">
+          <div>남은 카드</div>
+          <span id="remainingCount">52</span>
+        </div>
+      </section>
+
+      <div class="board">
+        <div class="top-row" id="topRow"></div>
+        <div class="tableau" id="tableau"></div>
+      </div>
+
+      <div class="rules">
+        <b>FreeCell 규칙 요약</b> - 모든 카드를 4개의 <b>Foundation</b>에 무늬별 A~K로 올립니다.
+        <br />
+        <b>Tableau</b>는 색이 번갈아가며 내림차순으로 쌓을 수 있고,
+        <b>Free Cell</b>은 임시 보관 공간입니다. 여러 장 이동은 빈 Free Cell/빈 컬럼 수에 따라 제한됩니다.
+      </div>
+    </div>
+
+    <script>
+      const suits = [
+        { name: "spades", symbol: "♠", color: "black" },
+        { name: "hearts", symbol: "♥", color: "red" },
+        { name: "clubs", symbol: "♣", color: "black" },
+        { name: "diamonds", symbol: "♦", color: "red" },
+      ];
+      const ranks = [
+        { name: "A", value: 1 },
+        { name: "2", value: 2 },
+        { name: "3", value: 3 },
+        { name: "4", value: 4 },
+        { name: "5", value: 5 },
+        { name: "6", value: 6 },
+        { name: "7", value: 7 },
+        { name: "8", value: 8 },
+        { name: "9", value: 9 },
+        { name: "10", value: 10 },
+        { name: "J", value: 11 },
+        { name: "Q", value: 12 },
+        { name: "K", value: 13 },
+      ];
+
+      const state = {
+        freeCells: Array(4).fill(null),
+        foundations: Array(4).fill(null),
+        tableau: Array.from({ length: 8 }, () => []),
+        moveCount: 0,
+        history: [],
+        selection: null,
+      };
+
+      const topRow = document.getElementById("topRow");
+      const tableauEl = document.getElementById("tableau");
+      const moveCountEl = document.getElementById("moveCount");
+      const freeCountEl = document.getElementById("freeCount");
+      const remainingCountEl = document.getElementById("remainingCount");
+
+      const newGameBtn = document.getElementById("newGameBtn");
+      const undoBtn = document.getElementById("undoBtn");
+      const autoBtn = document.getElementById("autoBtn");
+
+      function createDeck() {
+        const deck = [];
+        suits.forEach((suit) => {
+          ranks.forEach((rank) => {
+            deck.push({
+              suit: suit.name,
+              symbol: suit.symbol,
+              color: suit.color,
+              rank: rank.name,
+              value: rank.value,
+            });
+          });
+        });
+        return deck;
+      }
+
+      function shuffle(deck) {
+        for (let i = deck.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        return deck;
+      }
+
+      function deal() {
+        state.tableau = Array.from({ length: 8 }, () => []);
+        const deck = shuffle(createDeck());
+        deck.forEach((card, index) => {
+          state.tableau[index % 8].push(card);
+        });
+      }
+
+      function snapshot() {
+        return JSON.parse(
+          JSON.stringify({
+            freeCells: state.freeCells,
+            foundations: state.foundations,
+            tableau: state.tableau,
+            moveCount: state.moveCount,
+          })
+        );
+      }
+
+      function restore(snap) {
+        state.freeCells = snap.freeCells;
+        state.foundations = snap.foundations;
+        state.tableau = snap.tableau;
+        state.moveCount = snap.moveCount;
+      }
+
+      function pushHistory() {
+        state.history.push(snapshot());
+        if (state.history.length > 200) {
+          state.history.shift();
+        }
+      }
+
+      function isOppositeColor(cardA, cardB) {
+        return cardA.color !== cardB.color;
+      }
+
+      function canStackOnTableau(card, targetCard) {
+        if (!targetCard) {
+          return true;
+        }
+        return isOppositeColor(card, targetCard) && card.value + 1 === targetCard.value;
+      }
+
+      function canMoveToFoundation(card, foundationIndex) {
+        const top = state.foundations[foundationIndex];
+        if (!top) {
+          return card.value === 1;
+        }
+        return top.suit === card.suit && card.value === top.value + 1;
+      }
+
+      function getMaxMovable() {
+        const free = state.freeCells.filter(Boolean).length;
+        const emptyColumns = state.tableau.filter((col) => col.length === 0).length;
+        return (free + 1) * Math.pow(2, emptyColumns);
+      }
+
+      function getTableauStack(columnIndex, cardIndex) {
+        const column = state.tableau[columnIndex];
+        const stack = column.slice(cardIndex);
+        for (let i = 0; i < stack.length - 1; i += 1) {
+          if (!canStackOnTableau(stack[i], stack[i + 1])) {
+            return null;
+          }
+        }
+        return stack;
+      }
+
+      function moveStackToTableau(source, targetColumn) {
+        const stack = getTableauStack(source.column, source.cardIndex);
+        if (!stack) {
+          return false;
+        }
+        if (stack.length > getMaxMovable()) {
+          return false;
+        }
+        const targetCol = state.tableau[targetColumn];
+        const targetTop = targetCol[targetCol.length - 1];
+        if (!canStackOnTableau(stack[0], targetTop)) {
+          return false;
+        }
+        pushHistory();
+        state.tableau[targetColumn] = targetCol.concat(stack);
+        state.tableau[source.column] = state.tableau[source.column].slice(0, source.cardIndex);
+        state.moveCount += 1;
+        return true;
+      }
+
+      function moveSingleCard(source, target) {
+        const card = source.card;
+        if (!card) return false;
+        if (target.type === "foundation") {
+          if (!canMoveToFoundation(card, target.index)) return false;
+          pushHistory();
+          state.foundations[target.index] = card;
+          removeCardFromSource(source);
+          state.moveCount += 1;
+          return true;
+        }
+        if (target.type === "free") {
+          if (state.freeCells[target.index]) return false;
+          pushHistory();
+          state.freeCells[target.index] = card;
+          removeCardFromSource(source);
+          state.moveCount += 1;
+          return true;
+        }
+        if (target.type === "tableau") {
+          const col = state.tableau[target.index];
+          const top = col[col.length - 1];
+          if (!canStackOnTableau(card, top)) return false;
+          pushHistory();
+          state.tableau[target.index].push(card);
+          removeCardFromSource(source);
+          state.moveCount += 1;
+          return true;
+        }
+        return false;
+      }
+
+      function removeCardFromSource(source) {
+        if (source.type === "free") {
+          state.freeCells[source.index] = null;
+        } else if (source.type === "foundation") {
+          state.foundations[source.index] = null;
+        } else if (source.type === "tableau") {
+          state.tableau[source.column].pop();
+        }
+      }
+
+      function autoMoveOnce() {
+        let moved = false;
+        state.tableau.forEach((col, colIndex) => {
+          if (col.length === 0) return;
+          const card = col[col.length - 1];
+          const index = suits.findIndex((s) => s.name === card.suit);
+          if (canMoveToFoundation(card, index)) {
+            pushHistory();
+            state.foundations[index] = card;
+            state.tableau[colIndex].pop();
+            state.moveCount += 1;
+            moved = true;
+          }
+        });
+        state.freeCells.forEach((card, freeIndex) => {
+          if (!card) return;
+          const index = suits.findIndex((s) => s.name === card.suit);
+          if (canMoveToFoundation(card, index)) {
+            pushHistory();
+            state.foundations[index] = card;
+            state.freeCells[freeIndex] = null;
+            state.moveCount += 1;
+            moved = true;
+          }
+        });
+        return moved;
+      }
+
+      function autoMoveAll() {
+        let moved = false;
+        while (autoMoveOnce()) {
+          moved = true;
+        }
+        return moved;
+      }
+
+      function clearSelection() {
+        state.selection = null;
+      }
+
+      function selectCard(source, cardIndex) {
+        state.selection = { ...source, cardIndex };
+      }
+
+      function handleCardClick(source, cardIndex) {
+        if (!state.selection) {
+          selectCard(source, cardIndex);
+          render();
+          return;
+        }
+        const selection = state.selection;
+        const same = JSON.stringify(selection) === JSON.stringify({ ...source, cardIndex });
+        if (same) {
+          clearSelection();
+          render();
+          return;
+        }
+        let moved = false;
+        const isStackSelection =
+          selection.type === "tableau" && selection.cardIndex < state.tableau[selection.column].length - 1;
+        if (isStackSelection && source.type === "tableau") {
+          moved = moveStackToTableau(selection, source.column ?? source.index);
+        } else if (!isStackSelection) {
+          moved = moveSingleCard(getSourceFromSelection(selection), getTargetFromSource(source));
+        }
+        clearSelection();
+        render();
+      }
+
+      function getSourceFromSelection(selection) {
+        if (selection.type === "tableau") {
+          return {
+            type: "tableau",
+            column: selection.column,
+            card: state.tableau[selection.column][selection.cardIndex],
+          };
+        }
+        if (selection.type === "free") {
+          return { type: "free", index: selection.index, card: state.freeCells[selection.index] };
+        }
+        return { type: "foundation", index: selection.index, card: state.foundations[selection.index] };
+      }
+
+      function getTargetFromSource(source) {
+        if (source.type === "tableau") {
+          return { type: "tableau", index: source.column };
+        }
+        if (source.type === "free") {
+          return { type: "free", index: source.index };
+        }
+        return { type: "foundation", index: source.index };
+      }
+
+      function renderTopRow() {
+        topRow.innerHTML = "";
+        state.freeCells.forEach((card, index) => {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.dataset.type = "free";
+          cell.dataset.index = index;
+          cell.innerHTML = `<div class="cell-label">FREE</div>`;
+          if (card) {
+            cell.appendChild(renderCard(card, { type: "free", index }));
+          }
+          cell.addEventListener("click", () => {
+            if (!card && !state.selection) return;
+            handleCardClick({ type: "free", index }, 0);
+          });
+          topRow.appendChild(cell);
+        });
+
+        const separator = document.createElement("div");
+        separator.className = "separator";
+        topRow.appendChild(separator);
+
+        state.foundations.forEach((card, index) => {
+          const foundation = document.createElement("div");
+          foundation.className = "foundation";
+          foundation.dataset.type = "foundation";
+          foundation.dataset.index = index;
+          foundation.innerHTML = `<div class="cell-label">${suits[index].symbol}</div>`;
+          if (card) {
+            foundation.appendChild(renderCard(card, { type: "foundation", index }));
+          }
+          foundation.addEventListener("click", () => {
+            if (!card && !state.selection) return;
+            handleCardClick({ type: "foundation", index }, 0);
+          });
+          topRow.appendChild(foundation);
+        });
+      }
+
+      function renderTableau() {
+        tableauEl.innerHTML = "";
+        state.tableau.forEach((col, colIndex) => {
+          const column = document.createElement("div");
+          column.className = "column";
+          column.dataset.column = colIndex;
+          column.addEventListener("click", () => {
+            if (col.length === 0 && !state.selection) return;
+            const index = col.length === 0 ? 0 : col.length - 1;
+            handleCardClick({ type: "tableau", column: colIndex }, index);
+          });
+          if (col.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "empty-msg";
+            empty.textContent = "비어 있음";
+            column.appendChild(empty);
+          }
+          col.forEach((card, cardIndex) => {
+            const cardEl = renderCard(card, { type: "tableau", column: colIndex }, cardIndex);
+            cardEl.style.top = `${cardIndex * 26}px`;
+            column.appendChild(cardEl);
+          });
+          tableauEl.appendChild(column);
+        });
+      }
+
+      function renderCard(card, source, cardIndex = 0) {
+        const cardEl = document.createElement("div");
+        cardEl.className = `card ${card.color}`;
+        cardEl.innerHTML = `<span>${card.rank}</span><span class="suit">${card.symbol}</span>`;
+        if (state.selection && isSameSelection(source, cardIndex)) {
+          cardEl.classList.add("selected");
+        }
+        cardEl.addEventListener("click", (event) => {
+          event.stopPropagation();
+          handleCardClick(source, cardIndex);
+        });
+        cardEl.addEventListener("dblclick", (event) => {
+          event.stopPropagation();
+          if (source.type === "tableau") {
+            const column = state.tableau[source.column];
+            if (column[column.length - 1] !== card) return;
+          }
+          const index = suits.findIndex((s) => s.name === card.suit);
+          const from = getSourceFromSelection({ ...source, cardIndex });
+          if (moveSingleCard(from, { type: "foundation", index })) {
+            clearSelection();
+            render();
+          }
+        });
+        return cardEl;
+      }
+
+      function isSameSelection(source, cardIndex) {
+        if (!state.selection) return false;
+        if (state.selection.type !== source.type) return false;
+        if (source.type === "tableau") {
+          return state.selection.column === source.column && state.selection.cardIndex === cardIndex;
+        }
+        return state.selection.index === source.index;
+      }
+
+      function updateStatus() {
+        moveCountEl.textContent = state.moveCount;
+        const freeUsed = state.freeCells.filter(Boolean).length;
+        freeCountEl.textContent = `${4 - freeUsed} / 4`;
+        const remaining =
+          state.tableau.reduce((acc, col) => acc + col.length, 0) +
+          state.freeCells.filter(Boolean).length;
+        remainingCountEl.textContent = remaining;
+      }
+
+      function render() {
+        renderTopRow();
+        renderTableau();
+        updateStatus();
+      }
+
+      function newGame() {
+        state.freeCells = Array(4).fill(null);
+        state.foundations = Array(4).fill(null);
+        state.moveCount = 0;
+        state.history = [];
+        state.selection = null;
+        deal();
+        render();
+      }
+
+      newGameBtn.addEventListener("click", newGame);
+      undoBtn.addEventListener("click", () => {
+        const snap = state.history.pop();
+        if (snap) {
+          restore(snap);
+          clearSelection();
+          render();
+        }
+      });
+      autoBtn.addEventListener("click", () => {
+        autoMoveAll();
+        clearSelection();
+        render();
+      });
+
+      newGame();
+    </script>
   </body>
 </html>
