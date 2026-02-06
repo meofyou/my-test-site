@@ -17,6 +17,11 @@
         --accent-2: #6bd1b6;
         --outline: rgba(255, 255, 255, 0.2);
         --shadow: rgba(4, 10, 24, 0.45);
+        --card-w: 96px;
+        --card-h: 132px;
+        --col-w: 116px;
+        --stack-gap: 34px;
+        --gutter: 14px;
       }
 
       * {
@@ -115,13 +120,16 @@
       .board {
         display: grid;
         gap: 18px;
+        overflow-x: auto;
+        padding-bottom: 6px;
       }
 
       .top-row {
         display: grid;
-        grid-template-columns: repeat(4, minmax(90px, 1fr)) 20px repeat(4, minmax(90px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(4, minmax(var(--col-w), 1fr)) 20px repeat(4, minmax(var(--col-w), 1fr));
+        gap: var(--gutter);
         align-items: center;
+        min-width: calc(8 * var(--col-w) + 7 * var(--gutter) + 20px);
       }
 
       .separator {
@@ -130,13 +138,15 @@
 
       .cell,
       .foundation {
-        min-height: 110px;
+        min-height: 120px;
+        min-width: var(--col-w);
         border-radius: 14px;
         border: 1px dashed rgba(255, 255, 255, 0.25);
         background: rgba(13, 22, 38, 0.55);
         display: grid;
         place-items: center;
         position: relative;
+        transition: border 0.2s ease, box-shadow 0.2s ease;
       }
 
       .foundation {
@@ -156,39 +166,52 @@
 
       .tableau {
         display: grid;
-        grid-template-columns: repeat(8, minmax(90px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(8, minmax(var(--col-w), 1fr));
+        gap: var(--gutter);
+        min-width: calc(8 * var(--col-w) + 7 * var(--gutter));
       }
 
       .column {
         min-height: 460px;
+        min-width: var(--col-w);
         border-radius: 16px;
         border: 1px dashed rgba(255, 255, 255, 0.18);
-        padding: 10px 8px 16px;
+        padding: 12px 8px 16px;
         background: rgba(10, 16, 30, 0.55);
         position: relative;
+        transition: border 0.2s ease, box-shadow 0.2s ease;
       }
 
       .card {
-        width: 100%;
-        padding: 10px 10px 12px;
+        width: var(--card-w);
+        height: var(--card-h);
+        padding: 12px 10px;
         border-radius: 12px;
         background: var(--card);
         color: var(--card-ink);
         font-weight: 700;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        display: grid;
+        justify-items: start;
+        align-content: space-between;
         box-shadow: 0 10px 24px rgba(5, 10, 20, 0.25);
-        border: 2px solid transparent;
+        border: 2px solid rgba(0, 0, 0, 0.08);
         transition: transform 0.15s ease, border 0.2s ease;
         position: absolute;
-        left: 8px;
-        right: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-size: cover;
+        background-position: center;
+        cursor: grab;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+      }
+
+      .card .corner {
+        font-size: 18px;
+        letter-spacing: -0.02em;
       }
 
       .card .suit {
-        font-size: 18px;
+        font-size: 22px;
       }
 
       .card.red {
@@ -201,16 +224,23 @@
 
       .card.selected {
         border-color: var(--accent);
-        transform: translateY(-4px);
+        transform: translate(-50%, -4px);
       }
 
-      .card.hint {
-        border-color: var(--accent-2);
+      .card.dragging {
+        opacity: 0.6;
+        cursor: grabbing;
+      }
+
+      .drop-ready {
+        outline: 2px solid rgba(240, 179, 90, 0.6);
+        outline-offset: -4px;
+        box-shadow: 0 12px 30px rgba(240, 179, 90, 0.18);
       }
 
       .empty-msg {
         font-size: 12px;
-        opacity: 0.55;
+        opacity: 0.6;
         text-align: center;
         padding: 10px;
       }
@@ -230,9 +260,15 @@
       }
 
       @media (max-width: 900px) {
+        :root {
+          --card-w: 86px;
+          --card-h: 120px;
+          --col-w: 104px;
+          --stack-gap: 30px;
+        }
+
         .top-row {
-          grid-template-columns: repeat(4, minmax(70px, 1fr));
-          gap: 10px;
+          grid-template-columns: repeat(4, minmax(var(--col-w), 1fr));
         }
 
         .separator {
@@ -240,7 +276,7 @@
         }
 
         .tableau {
-          grid-template-columns: repeat(4, minmax(70px, 1fr));
+          grid-template-columns: repeat(4, minmax(var(--col-w), 1fr));
         }
       }
     </style>
@@ -250,7 +286,7 @@
       <header>
         <div class="title">
           <h1>FreeCell, NAS Edition</h1>
-          <p>카드를 클릭해서 선택하고 이동할 위치를 다시 클릭하세요.</p>
+          <p>카드를 드래그해서 이동하세요. 클릭은 선택용으로만 동작합니다.</p>
         </div>
         <div class="controls">
           <button id="newGameBtn">새 게임</button>
@@ -318,6 +354,7 @@
         history: [],
         selection: null,
       };
+      let dragSource = null;
 
       const topRow = document.getElementById("topRow");
       const tableauEl = document.getElementById("tableau");
@@ -411,6 +448,28 @@
         return (free + 1) * Math.pow(2, emptyColumns);
       }
 
+      function cardSvg(card) {
+        const fill = card.color === "red" ? "#c8373b" : "#1b1f2b";
+        const light = card.color === "red" ? "#fde8e8" : "#e9eef6";
+        const svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="140" height="190" viewBox="0 0 140 190">
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="${light}"/>
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="132" height="182" rx="16" fill="url(#g)" stroke="#c9bfb4" stroke-width="2"/>
+            <text x="18" y="28" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}">${card.rank}</text>
+            <text x="18" y="48" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}">${card.symbol}</text>
+            <text x="70" y="118" text-anchor="middle" font-size="68" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}">${card.symbol}</text>
+            <text x="122" y="168" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}" transform="rotate(180 122 168)">${card.rank}</text>
+            <text x="122" y="148" font-size="20" font-family="Space Grotesk, Arial" font-weight="700" fill="${fill}" transform="rotate(180 122 148)">${card.symbol}</text>
+          </svg>
+        `;
+        return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+      }
+
       function getTableauStack(columnIndex, cardIndex) {
         const column = state.tableau[columnIndex];
         const stack = column.slice(cardIndex);
@@ -445,6 +504,10 @@
       function moveSingleCard(source, target) {
         const card = source.card;
         if (!card) return false;
+        if (source.type === "tableau") {
+          const col = state.tableau[source.column];
+          if (col[col.length - 1] !== card) return false;
+        }
         if (target.type === "foundation") {
           if (!canMoveToFoundation(card, target.index)) return false;
           pushHistory();
@@ -528,7 +591,12 @@
         state.selection = { ...source, cardIndex };
       }
 
-      function handleCardClick(source, cardIndex) {
+      function handleCardClick(source, cardIndex, hasCard) {
+        if (!hasCard) {
+          clearSelection();
+          render();
+          return;
+        }
         if (!state.selection) {
           selectCard(source, cardIndex);
           render();
@@ -541,15 +609,7 @@
           render();
           return;
         }
-        let moved = false;
-        const isStackSelection =
-          selection.type === "tableau" && selection.cardIndex < state.tableau[selection.column].length - 1;
-        if (isStackSelection && source.type === "tableau") {
-          moved = moveStackToTableau(selection, source.column ?? source.index);
-        } else if (!isStackSelection) {
-          moved = moveSingleCard(getSourceFromSelection(selection), getTargetFromSource(source));
-        }
-        clearSelection();
+        selectCard(source, cardIndex);
         render();
       }
 
@@ -558,6 +618,7 @@
           return {
             type: "tableau",
             column: selection.column,
+            cardIndex: selection.cardIndex,
             card: state.tableau[selection.column][selection.cardIndex],
           };
         }
@@ -589,8 +650,27 @@
             cell.appendChild(renderCard(card, { type: "free", index }));
           }
           cell.addEventListener("click", () => {
-            if (!card && !state.selection) return;
-            handleCardClick({ type: "free", index }, 0);
+            handleCardClick({ type: "free", index }, 0, Boolean(card));
+          });
+          cell.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            cell.classList.add("drop-ready");
+          });
+          cell.addEventListener("dragleave", () => cell.classList.remove("drop-ready"));
+          cell.addEventListener("drop", () => {
+            cell.classList.remove("drop-ready");
+            if (!dragSource) return;
+            if (dragSource.type === "tableau") {
+              const col = state.tableau[dragSource.column];
+              if (col[col.length - 1] !== col[dragSource.cardIndex]) {
+                dragSource = null;
+                return;
+              }
+            }
+            moveSingleCard(getSourceFromSelection(dragSource), { type: "free", index });
+            dragSource = null;
+            clearSelection();
+            render();
           });
           topRow.appendChild(cell);
         });
@@ -609,8 +689,27 @@
             foundation.appendChild(renderCard(card, { type: "foundation", index }));
           }
           foundation.addEventListener("click", () => {
-            if (!card && !state.selection) return;
-            handleCardClick({ type: "foundation", index }, 0);
+            handleCardClick({ type: "foundation", index }, 0, Boolean(card));
+          });
+          foundation.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            foundation.classList.add("drop-ready");
+          });
+          foundation.addEventListener("dragleave", () => foundation.classList.remove("drop-ready"));
+          foundation.addEventListener("drop", () => {
+            foundation.classList.remove("drop-ready");
+            if (!dragSource) return;
+            if (dragSource.type === "tableau") {
+              const col = state.tableau[dragSource.column];
+              if (col[col.length - 1] !== col[dragSource.cardIndex]) {
+                dragSource = null;
+                return;
+              }
+            }
+            moveSingleCard(getSourceFromSelection(dragSource), { type: "foundation", index });
+            dragSource = null;
+            clearSelection();
+            render();
           });
           topRow.appendChild(foundation);
         });
@@ -618,14 +717,36 @@
 
       function renderTableau() {
         tableauEl.innerHTML = "";
+        const stackGap =
+          Number.parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stack-gap"), 10) || 34;
         state.tableau.forEach((col, colIndex) => {
           const column = document.createElement("div");
           column.className = "column";
           column.dataset.column = colIndex;
           column.addEventListener("click", () => {
-            if (col.length === 0 && !state.selection) return;
-            const index = col.length === 0 ? 0 : col.length - 1;
-            handleCardClick({ type: "tableau", column: colIndex }, index);
+            const hasCard = col.length > 0;
+            const index = hasCard ? col.length - 1 : 0;
+            handleCardClick({ type: "tableau", column: colIndex }, index, hasCard);
+          });
+          column.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            column.classList.add("drop-ready");
+          });
+          column.addEventListener("dragleave", () => column.classList.remove("drop-ready"));
+          column.addEventListener("drop", () => {
+            column.classList.remove("drop-ready");
+            if (!dragSource) return;
+            const selection = dragSource;
+            const isStackSelection =
+              selection.type === "tableau" && selection.cardIndex < state.tableau[selection.column].length - 1;
+            if (isStackSelection) {
+              moveStackToTableau(selection, colIndex);
+            } else {
+              moveSingleCard(getSourceFromSelection(selection), { type: "tableau", index: colIndex });
+            }
+            dragSource = null;
+            clearSelection();
+            render();
           });
           if (col.length === 0) {
             const empty = document.createElement("div");
@@ -635,7 +756,7 @@
           }
           col.forEach((card, cardIndex) => {
             const cardEl = renderCard(card, { type: "tableau", column: colIndex }, cardIndex);
-            cardEl.style.top = `${cardIndex * 26}px`;
+            cardEl.style.top = `${cardIndex * stackGap}px`;
             column.appendChild(cardEl);
           });
           tableauEl.appendChild(column);
@@ -645,13 +766,27 @@
       function renderCard(card, source, cardIndex = 0) {
         const cardEl = document.createElement("div");
         cardEl.className = `card ${card.color}`;
-        cardEl.innerHTML = `<span>${card.rank}</span><span class="suit">${card.symbol}</span>`;
+        cardEl.style.backgroundImage = `url("${cardSvg(card)}")`;
+        cardEl.innerHTML = `
+          <span class="corner">${card.rank}</span>
+          <span class="suit">${card.symbol}</span>
+        `;
         if (state.selection && isSameSelection(source, cardIndex)) {
           cardEl.classList.add("selected");
         }
         cardEl.addEventListener("click", (event) => {
           event.stopPropagation();
-          handleCardClick(source, cardIndex);
+          handleCardClick(source, cardIndex, true);
+        });
+        cardEl.setAttribute("draggable", "true");
+        cardEl.addEventListener("dragstart", (event) => {
+          dragSource = { ...source, cardIndex };
+          cardEl.classList.add("dragging");
+          event.dataTransfer.setData("text/plain", "card");
+        });
+        cardEl.addEventListener("dragend", () => {
+          cardEl.classList.remove("dragging");
+          dragSource = null;
         });
         cardEl.addEventListener("dblclick", (event) => {
           event.stopPropagation();
