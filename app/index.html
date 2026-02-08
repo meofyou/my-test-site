@@ -129,7 +129,7 @@
       const RHYTHM_PATTERN = [1.42, 1.18, 1.32, 1.06, 1.52, 1.2, 1.35, 1.0];
       const TOP10_KEY = "dino-top10";
       const PALETTE = {
-        cloud: "#b7d4eb",
+        cloud: "#89b6d8",
         groundLine: "#3e7d4f",
         groundDust: "#69a96f",
         dinoBase: "#1f9e5a",
@@ -154,7 +154,7 @@
           y: 2,
           w: 44,
           h: 47,
-          idleFrame: 0,
+          idleFrame: 44,
           runFrames: [88, 132],
           crashedFrame: 220,
           jumpFrame: 0,
@@ -547,7 +547,6 @@
       function drawDino() {
         const x = dino.x;
         const y = dino.y;
-        const h = dino.height;
 
         if (!(spriteSheet.complete && spriteSheet.naturalWidth > 0)) {
           ctx.fillStyle = PALETTE.dinoBase;
@@ -555,32 +554,15 @@
           return;
         }
 
-        let scaleX = 1;
-        let scaleY = 1;
-        if (!dino.grounded) {
-          if (dino.vy < -1) {
-            scaleX = 0.94;
-            scaleY = 1.08;
-          } else {
-            scaleX = 1.07;
-            scaleY = 0.94;
-          }
-        }
-        if (dino.landSquashFrames > 0) {
-          const squash = dino.landSquashFrames / 8;
-          scaleX += 0.09 * squash;
-          scaleY -= 0.09 * squash;
-        }
-
         const runningFrame = Math.floor(dino.frame / 6) % 2;
         let sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
         let sy = SPRITE.dino.y;
         let sw = SPRITE.dino.w;
         let sh = SPRITE.dino.h;
-        let dx = x - 7;
-        let dy = y - 8;
-        let dw = 74;
-        let dh = 76;
+        let dx = x - 6;
+        let dy = y - 10;
+        let dw = 72;
+        let dh = 78;
 
         if (state.gameOver) {
           sx = SPRITE.dino.x + SPRITE.dino.crashedFrame;
@@ -588,10 +570,10 @@
           sx = SPRITE.dino.x + SPRITE.dino.duckFrames[runningFrame];
           sw = SPRITE.dino.duckW;
           sh = SPRITE.dino.duckH;
-          dx = x - 10;
-          dy = y - 2;
-          dw = 86;
-          dh = 42;
+          dx = x - 11;
+          dy = y;
+          dw = 94;
+          dh = 40;
         } else if (!state.running) {
           sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
         } else if (!dino.grounded) {
@@ -599,13 +581,6 @@
         } else {
           sx = SPRITE.dino.x + SPRITE.dino.runFrames[runningFrame];
         }
-
-        ctx.save();
-        const pivotX = x + dino.width / 2;
-        const pivotY = y + h;
-        ctx.translate(pivotX, pivotY);
-        ctx.scale(scaleX, scaleY);
-        ctx.translate(-pivotX, -pivotY);
         ctx.drawImage(
           spriteSheet,
           sx,
@@ -617,7 +592,6 @@
           Math.round(dw),
           Math.round(dh),
         );
-        ctx.restore();
       }
 
       function drawCactus(o) {
