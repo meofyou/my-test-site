@@ -62,6 +62,8 @@
       const GROUND_Y = 182;
       const GRAVITY = 0.56;
       const JUMP_POWER = 11.6;
+      const EXTRA_JUMP_FRAMES = 6;
+      const EXTRA_JUMP_BOOST = 0.18;
       const BASE_SPEED = 6.2;
       const DIFFICULTY_RAMP_START = 150;
       const DIFFICULTY_SCORE_MAX = 1900;
@@ -94,6 +96,8 @@
         grounded: true,
         ducking: false,
         frame: 0,
+        jumpBoostFrames: 0,
+        landSquashFrames: 0,
       };
 
       const obstacles = [];
@@ -223,13 +227,19 @@
         if (!dino.grounded) return;
         dino.vy = -JUMP_POWER;
         dino.grounded = false;
+        dino.jumpBoostFrames = EXTRA_JUMP_FRAMES;
       }
 
       function updateDino() {
+        const wasGrounded = dino.grounded;
         dino.ducking = input.down && dino.grounded;
         dino.height = dino.ducking ? dino.duckHeight : 44;
 
         if (!dino.grounded) {
+          if (input.up && dino.vy < -2 && dino.jumpBoostFrames > 0) {
+            dino.vy -= EXTRA_JUMP_BOOST;
+            dino.jumpBoostFrames -= 1;
+          }
           dino.vy += GRAVITY;
           dino.y += dino.vy;
           const groundY = GROUND_Y - dino.height;
@@ -237,13 +247,17 @@
             dino.y = groundY;
             dino.vy = 0;
             dino.grounded = true;
+            if (!wasGrounded) dino.landSquashFrames = 8;
           }
         } else {
           dino.y = GROUND_Y - dino.height;
+          dino.jumpBoostFrames = 0;
         }
 
+        if (dino.landSquashFrames > 0) dino.landSquashFrames -= 1;
+
         if (state.running && !state.gameOver) {
-          dino.frame = (dino.frame + 1) % 12;
+          dino.frame = (dino.frame + Math.max(0.9, state.speed / 6.2)) % 12;
         }
       }
 
@@ -352,11 +366,48 @@
         }
       }
 
+      function drawDinoShadow() {
+        const altitude = Math.max(0, GROUND_Y - (dino.y + dino.height));
+        const spread = 1 + altitude / 85;
+        const alpha = Math.max(0.06, 0.18 - altitude / 420);
+        ctx.save();
+        ctx.fillStyle = `rgba(40, 40, 40, ${alpha.toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(dino.x + dino.width / 2, GROUND_Y + 4, 14 * spread, 4.2 * spread, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
       function drawDino() {
         const runAlt = dino.frame < 6;
+        const eyeOpen = Math.floor(state.tick / 26) % 8 !== 0;
         const x = dino.x;
         const y = dino.y;
         const h = dino.height;
+
+        let scaleX = 1;
+        let scaleY = 1;
+        if (!dino.grounded) {
+          if (dino.vy < -1) {
+            scaleX = 0.94;
+            scaleY = 1.08;
+          } else {
+            scaleX = 1.07;
+            scaleY = 0.94;
+          }
+        }
+        if (dino.landSquashFrames > 0) {
+          const squash = dino.landSquashFrames / 8;
+          scaleX += 0.09 * squash;
+          scaleY -= 0.09 * squash;
+        }
+
+        ctx.save();
+        const pivotX = x + dino.width / 2;
+        const pivotY = y + h;
+        ctx.translate(pivotX, pivotY);
+        ctx.scale(scaleX, scaleY);
+        ctx.translate(-pivotX, -pivotY);
         ctx.fillStyle = "#535353";
 
         if (dino.ducking) {
@@ -384,9 +435,10 @@
           ctx.fillRect(x + 11, y + 12, 13, 3);
           ctx.fillRect(x + 11, y + 20, 16, 2);
           ctx.fillStyle = "#f7f7f7";
-          if (Math.floor(state.tick / 26) % 8 !== 0) ctx.fillRect(x + 31, y + 5, 3, 3);
+          if (eyeOpen) ctx.fillRect(x + 31, y + 5, 3, 3);
           ctx.fillStyle = "#535353";
         }
+        ctx.restore();
       }
 
       function drawCactus(o) {
@@ -474,6 +526,7 @@
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
         for (const c of clouds) drawCloud(c);
         drawGround();
+        drawDinoShadow();
         drawDino();
         drawObstacles();
         drawScore();
