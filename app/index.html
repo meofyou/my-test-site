@@ -120,6 +120,9 @@
       const EXTRA_JUMP_FRAMES = 6;
       const EXTRA_JUMP_BOOST = 0.18;
       const BASE_SPEED = 6.2;
+      const DINO_WIDTH = 60;
+      const DINO_STAND_HEIGHT = 60;
+      const DINO_DUCK_HEIGHT = 34;
       const DIFFICULTY_RAMP_START = 100;
       const DIFFICULTY_SCORE_MAX = 1450;
       const RHYTHM_PATTERN = [1.42, 1.18, 1.32, 1.06, 1.52, 1.2, 1.35, 1.0];
@@ -150,7 +153,9 @@
           y: 2,
           w: 44,
           h: 47,
+          idleFrame: 44,
           runFrames: [88, 132],
+          crashedFrame: 220,
           jumpFrame: 0,
           duckFrames: [264, 323],
           duckW: 59,
@@ -190,10 +195,10 @@
 
       const dino = {
         x: 64,
-        y: GROUND_Y - 44,
-        width: 44,
-        height: 44,
-        duckHeight: 28,
+        y: GROUND_Y - DINO_STAND_HEIGHT,
+        width: DINO_WIDTH,
+        height: DINO_STAND_HEIGHT,
+        duckHeight: DINO_DUCK_HEIGHT,
         vy: 0,
         grounded: true,
         ducking: false,
@@ -292,9 +297,9 @@
           obstacles.push({
             type: "ptera",
             x: spawnX,
-            y: GROUND_Y - 60,
-            width: 46,
-            height: 40,
+            y: GROUND_Y - 82,
+            width: 62,
+            height: 54,
             wing: 0,
           });
           return;
@@ -305,9 +310,9 @@
           obstacles.push({
             type: "cactus",
             x: spawnX,
-            y: GROUND_Y - 38,
-            width: 26,
-            height: 38,
+            y: GROUND_Y - 52,
+            width: 34,
+            height: 52,
           });
           return;
         }
@@ -315,9 +320,9 @@
         obstacles.push({
           type: "cactus",
           x: spawnX,
-          y: GROUND_Y - 54,
-          width: 34,
-          height: 54,
+          y: GROUND_Y - 72,
+          width: 44,
+          height: 72,
         });
       }
 
@@ -343,10 +348,12 @@
         state.spawnCooldown = 420;
         state.rhythmStep = 0;
         state.scoreLogged = false;
-        dino.y = GROUND_Y - 44;
+        dino.y = GROUND_Y - DINO_STAND_HEIGHT;
         dino.vy = 0;
         dino.grounded = true;
         dino.ducking = false;
+        dino.height = DINO_STAND_HEIGHT;
+        dino.frame = 0;
         resetWorld();
       }
 
@@ -367,7 +374,7 @@
       function updateDino() {
         const wasGrounded = dino.grounded;
         dino.ducking = input.down && dino.grounded;
-        dino.height = dino.ducking ? dino.duckHeight : 44;
+        dino.height = dino.ducking ? dino.duckHeight : DINO_STAND_HEIGHT;
 
         if (!dino.grounded) {
           if (input.up && dino.vy < -2 && dino.jumpBoostFrames > 0) {
@@ -438,8 +445,8 @@
       }
 
       function getDinoHitbox() {
-        const padX = dino.ducking ? 6 : 8;
-        const padY = dino.ducking ? 5 : 4;
+        const padX = dino.ducking ? 10 : 12;
+        const padY = dino.ducking ? 7 : 8;
         return {
           x: dino.x + padX,
           y: dino.y + padY,
@@ -450,9 +457,9 @@
 
       function getObstacleHitbox(o) {
         if (o.type === "ptera") {
-          return { x: o.x + 3, y: o.y + 6, w: o.width - 6, h: o.height - 10 };
+          return { x: o.x + 8, y: o.y + 10, w: o.width - 16, h: o.height - 20 };
         }
-        return { x: o.x + 3, y: o.y + 2, w: o.width - 6, h: o.height - 4 };
+        return { x: o.x + 5, y: o.y + 4, w: o.width - 10, h: o.height - 8 };
       }
 
       function intersects(a, b) {
@@ -462,14 +469,35 @@
       function checkCollision() {
         if (state.gameOver) return;
         const db = getDinoHitbox();
+
+        const triggerGameOver = () => {
+          const finalScore = Math.floor(state.score);
+          state.gameOver = true;
+          state.running = false;
+          state.hi = Math.max(state.hi, finalScore);
+          localStorage.setItem("dino-hi", String(state.hi));
+          recordTop10(finalScore);
+        };
+
         for (const o of obstacles) {
-          if (intersects(db, getObstacleHitbox(o))) {
-            const finalScore = Math.floor(state.score);
-            state.gameOver = true;
-            state.running = false;
-            state.hi = Math.max(state.hi, finalScore);
-            localStorage.setItem("dino-hi", String(state.hi));
-            recordTop10(finalScore);
+          const ob = getObstacleHitbox(o);
+          const xOverlap = db.x < ob.x + ob.w && db.x + db.w > ob.x;
+
+          if (o.type === "ptera") {
+            if (xOverlap && !dino.ducking) {
+              triggerGameOver();
+              return;
+            }
+            continue;
+          }
+
+          if (o.type === "cactus" && xOverlap && dino.grounded) {
+            triggerGameOver();
+            return;
+          }
+
+          if (intersects(db, ob)) {
+            triggerGameOver();
             return;
           }
         }
@@ -544,25 +572,31 @@
         }
 
         const runningFrame = Math.floor(dino.frame / 6) % 2;
-        let sx = SPRITE.dino.x + SPRITE.dino.runFrames[runningFrame];
+        let sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
         let sy = SPRITE.dino.y;
         let sw = SPRITE.dino.w;
         let sh = SPRITE.dino.h;
-        let dx = x - 1;
-        let dy = y - 3;
-        let dw = 46;
-        let dh = 47;
+        let dx = x - 4;
+        let dy = y - 7;
+        let dw = 68;
+        let dh = 72;
 
-        if (!dino.grounded) {
-          sx = SPRITE.dino.x + SPRITE.dino.jumpFrame;
+        if (state.gameOver) {
+          sx = SPRITE.dino.x + SPRITE.dino.crashedFrame;
         } else if (dino.ducking) {
           sx = SPRITE.dino.x + SPRITE.dino.duckFrames[runningFrame];
           sw = SPRITE.dino.duckW;
           sh = SPRITE.dino.duckH;
-          dx = x - 5;
-          dy = y - 1;
-          dw = 62;
-          dh = 30;
+          dx = x - 8;
+          dy = y - 2;
+          dw = 82;
+          dh = 40;
+        } else if (!state.running) {
+          sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
+        } else if (!dino.grounded) {
+          sx = SPRITE.dino.x + SPRITE.dino.jumpFrame;
+        } else {
+          sx = SPRITE.dino.x + SPRITE.dino.runFrames[runningFrame];
         }
 
         ctx.save();
