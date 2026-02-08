@@ -165,7 +165,7 @@
             { x: 721, y: 2, w: 44, h: 47 },
           ],
           jump: { x: 677, y: 2, w: 44, h: 47 },
-          duck: { x: 952, y: 20, w: 59, h: 29 },
+          duck: { x: 1011, y: 20, w: 59, h: 29 },
         },
         cactus: {
           small: { x: 228, y: 2, w: 17, h: 35 },
@@ -614,6 +614,7 @@
           src = SPRITE.dino.jump;
         }
 
+        ctx.save();
         ctx.drawImage(
           obstacleSheet,
           src.x,
@@ -625,6 +626,10 @@
           Math.round(dw),
           Math.round(dh),
         );
+        ctx.globalCompositeOperation = "source-atop";
+        ctx.fillStyle = PALETTE.dinoBase;
+        ctx.fillRect(Math.round(dx), Math.round(dy), Math.round(dw), Math.round(dh));
+        ctx.restore();
       }
 
       function drawCactus(o) {
