@@ -158,20 +158,24 @@
       };
       const top10List = document.getElementById("top10List");
 
-      const spriteSheet = new Image();
+      const dinoSheet = new Image();
+      dinoSheet.src = "./img/dino-fixed.png";
+      const obstacleSheet = new Image();
+      obstacleSheet.src = "./img/offline-sprite-1x.png";
+
       const SPRITE = {
         dino: {
-          x: 848,
-          y: 2,
-          w: 44,
-          h: 47,
-          idleFrame: 44,
-          runFrames: [88, 132],
-          crashedFrame: 220,
+          x: 0,
+          y: 0,
+          w: 48,
+          h: 48,
+          idleFrame: 0,
+          runFrames: [48, 96],
+          crashedFrame: 0,
           jumpFrame: 0,
-          duckFrames: [264, 323],
-          duckW: 59,
-          duckH: 25,
+          duckFrames: [144],
+          duckW: 48,
+          duckH: 48,
         },
         cactus: {
           small: { x: 228, y: 2, w: 17, h: 35 },
@@ -595,13 +599,13 @@
         const y = dino.y;
         const feetY = y + dino.height;
 
-        if (!(spriteSheet.complete && spriteSheet.naturalWidth > 0)) {
+        if (!(dinoSheet.complete && dinoSheet.naturalWidth > 0)) {
           ctx.fillStyle = PALETTE.dinoBase;
           ctx.fillRect(x + 8, y + 8, 40, dino.height - 8);
           return;
         }
 
-        const runningFrame = Math.floor(state.tick / 7) % 2;
+        const runningFrame = Math.floor(state.tick / 8) % 2;
         let sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
         let sy = SPRITE.dino.y;
         let sw = SPRITE.dino.w;
@@ -614,7 +618,7 @@
         if (state.gameOver) {
           sx = SPRITE.dino.x + SPRITE.dino.crashedFrame;
         } else if (dino.ducking) {
-          sx = SPRITE.dino.x + SPRITE.dino.duckFrames[runningFrame];
+          sx = SPRITE.dino.x + SPRITE.dino.duckFrames[0];
           sw = SPRITE.dino.duckW;
           sh = SPRITE.dino.duckH;
           dx = x - 14;
@@ -629,7 +633,7 @@
           sx = SPRITE.dino.x + SPRITE.dino.runFrames[runningFrame];
         }
         ctx.drawImage(
-          spriteSheet,
+          dinoSheet,
           sx,
           sy,
           sw,
@@ -642,11 +646,11 @@
       }
 
       function drawCactus(o) {
-        if (spriteSheet.complete && spriteSheet.naturalWidth > 0) {
+        if (obstacleSheet.complete && obstacleSheet.naturalWidth > 0) {
           const small = o.width < 30;
           const src = small ? SPRITE.cactus.small : SPRITE.cactus.large;
           ctx.drawImage(
-            spriteSheet,
+            obstacleSheet,
             src.x,
             src.y,
             src.w,
@@ -663,11 +667,11 @@
       }
 
       function drawPteranodon(o) {
-        if (spriteSheet.complete && spriteSheet.naturalWidth > 0) {
+        if (obstacleSheet.complete && obstacleSheet.naturalWidth > 0) {
           const frame = o.wing < 9 ? 0 : 1;
           const sx = SPRITE.ptera.x + SPRITE.ptera.frames[frame];
           ctx.drawImage(
-            spriteSheet,
+            obstacleSheet,
             sx,
             SPRITE.ptera.y,
             SPRITE.ptera.w,
@@ -732,6 +736,8 @@
 
       function render() {
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        ctx.fillStyle = "#d7e7f4";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
         for (const c of clouds) drawCloud(c);
         drawGround();
         drawDinoShadow();
@@ -784,17 +790,8 @@
       }
       renderTop10();
 
-      let booted = false;
-      function bootGame() {
-        if (booted) return;
-        booted = true;
-        restart();
-        loop();
-      }
-
-      spriteSheet.addEventListener("load", bootGame);
-      spriteSheet.addEventListener("error", bootGame);
-      spriteSheet.src = "./offline-sprite-1x.png";
+      restart();
+      loop();
     </script>
   </body>
 </html>
