@@ -156,17 +156,19 @@
 
       const obstacleSheet = new Image();
       obstacleSheet.src = "./img/offline-sprite-1x.png";
+      const dinoRenderSheet = {
+        canvas: null,
+        ready: false,
+        stand: { x: 0, y: 0, w: 44, h: 47 },
+        run: [
+          { x: 44, y: 0, w: 44, h: 47 },
+          { x: 88, y: 0, w: 44, h: 47 },
+        ],
+        jump: { x: 0, y: 0, w: 44, h: 47 },
+        duck: { x: 132, y: 18, w: 59, h: 29 },
+      };
 
       const SPRITE = {
-        dino: {
-          stand: { x: 677, y: 2, w: 44, h: 47 },
-          run: [
-            { x: 677, y: 2, w: 44, h: 47 },
-            { x: 721, y: 2, w: 44, h: 47 },
-          ],
-          jump: { x: 677, y: 2, w: 44, h: 47 },
-          duck: { x: 1011, y: 20, w: 59, h: 29 },
-        },
         cactus: {
           small: { x: 228, y: 2, w: 17, h: 35 },
           large: { x: 332, y: 2, w: 25, h: 50 },
@@ -219,6 +221,50 @@
 
       function rand(min, max) {
         return Math.random() * (max - min) + min;
+      }
+
+      function buildDinoRenderSheet() {
+        if (dinoRenderSheet.ready || !(obstacleSheet.complete && obstacleSheet.naturalWidth > 0)) return;
+
+        const canvasEl = document.createElement("canvas");
+        canvasEl.width = 191;
+        canvasEl.height = 47;
+        const c = canvasEl.getContext("2d");
+        c.imageSmoothingEnabled = false;
+
+        c.drawImage(obstacleSheet, 677, 2, 44, 47, 0, 0, 44, 47);
+        c.drawImage(obstacleSheet, 677, 2, 44, 47, 44, 0, 44, 47);
+        c.drawImage(obstacleSheet, 721, 2, 44, 47, 88, 0, 44, 47);
+        c.drawImage(obstacleSheet, 1011, 20, 59, 29, 132, 18, 59, 29);
+
+        const imgData = c.getImageData(0, 0, canvasEl.width, canvasEl.height);
+        const data = imgData.data;
+        const base = [31, 158, 90];
+        const accent = [23, 108, 64];
+
+        for (let i = 0; i < data.length; i += 4) {
+          const a = data[i + 3];
+          if (!a) continue;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const bright = (r + g + b) / 3;
+
+          if (bright > 200) {
+            data[i + 3] = 0;
+            continue;
+          }
+
+          const useAccent = bright < 95;
+          data[i] = useAccent ? accent[0] : base[0];
+          data[i + 1] = useAccent ? accent[1] : base[1];
+          data[i + 2] = useAccent ? accent[2] : base[2];
+          data[i + 3] = 255;
+        }
+
+        c.putImageData(imgData, 0, 0);
+        dinoRenderSheet.canvas = canvasEl;
+        dinoRenderSheet.ready = true;
       }
 
       function loadTop10() {
@@ -588,35 +634,52 @@
         const x = dino.x;
         const y = dino.y;
         const feetY = y + dino.height;
+        buildDinoRenderSheet();
 
-        if (!(obstacleSheet.complete && obstacleSheet.naturalWidth > 0)) {
+        if (!dinoRenderSheet.ready || !dinoRenderSheet.canvas) {
           ctx.fillStyle = PALETTE.dinoBase;
           ctx.fillRect(x + 8, y + 8, 40, dino.height - 8);
           return;
         }
 
         const runningFrame = Math.floor(state.tick / 8) % 2;
-        let src = SPRITE.dino.stand;
+        const blinkClosed = Math.floor(state.tick / 24) % 9 === 0;
+        let src = dinoRenderSheet.stand;
         let dx = x - 8;
         let dy = feetY - 78;
         let dw = 74;
         let dh = 78;
+        let eyeX = 0;
+        let eyeY = 0;
+        let eyeW = 3;
+        let eyeH = 3;
 
         if (dino.ducking) {
-          src = SPRITE.dino.duck;
+          src = dinoRenderSheet.duck;
           dx = x - 16;
           dy = feetY - 48;
           dw = 96;
           dh = 48;
+          eyeX = dx + 69;
+          eyeY = dy + 13;
+          eyeW = 4;
+          eyeH = 3;
         } else if (state.running && !state.gameOver && dino.grounded) {
-          src = SPRITE.dino.run[runningFrame];
+          src = dinoRenderSheet.run[runningFrame];
+          dy += runningFrame === 0 ? 0 : 1;
+          eyeX = dx + 47;
+          eyeY = dy + 20;
         } else if (!dino.grounded) {
-          src = SPRITE.dino.jump;
+          src = dinoRenderSheet.jump;
+          eyeX = dx + 47;
+          eyeY = dy + 20;
+        } else {
+          eyeX = dx + 47;
+          eyeY = dy + 20;
         }
 
-        ctx.save();
         ctx.drawImage(
-          obstacleSheet,
+          dinoRenderSheet.canvas,
           src.x,
           src.y,
           src.w,
@@ -626,10 +689,11 @@
           Math.round(dw),
           Math.round(dh),
         );
-        ctx.globalCompositeOperation = "source-atop";
-        ctx.fillStyle = PALETTE.dinoBase;
-        ctx.fillRect(Math.round(dx), Math.round(dy), Math.round(dw), Math.round(dh));
-        ctx.restore();
+
+        if (!state.gameOver && !blinkClosed) {
+          ctx.fillStyle = PALETTE.dinoEye;
+          ctx.fillRect(Math.round(eyeX), Math.round(eyeY), eyeW, eyeH);
+        }
       }
 
       function drawCactus(o) {
