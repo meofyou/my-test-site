@@ -6,9 +6,9 @@
     <title>Chrome Dino Clone</title>
     <style>
       :root {
-        --bg: #f7f7f7;
-        --ink: #535353;
-        --line: #c9c9c9;
+        --bg: #e7f4ff;
+        --ink: #1f3550;
+        --line: #8ab4d6;
       }
 
       * {
@@ -36,14 +36,14 @@
         border-bottom: 1px solid var(--line);
         image-rendering: pixelated;
         image-rendering: crisp-edges;
-        background: #fff;
+        background: #f8fcff;
       }
 
       .help {
         margin-top: 10px;
         font-size: 13px;
         text-align: center;
-        color: #7a7a7a;
+        color: #45627f;
       }
     </style>
   </head>
@@ -68,6 +68,22 @@
       const DIFFICULTY_RAMP_START = 150;
       const DIFFICULTY_SCORE_MAX = 1900;
       const RHYTHM_PATTERN = [1.42, 1.18, 1.32, 1.06, 1.52, 1.2, 1.35, 1.0];
+      const PALETTE = {
+        cloud: "#f1f8ff",
+        groundLine: "#3e7d4f",
+        groundDust: "#69a96f",
+        dinoBase: "#1f9e5a",
+        dinoAccent: "#176c40",
+        dinoEye: "#ffffff",
+        cactusBase: "#2f9f66",
+        cactusAccent: "#1f6f47",
+        pteraBase: "#ff8b3d",
+        pteraAccent: "#a84b1f",
+        uiText: "#2b4663",
+        promptText: "#3b5f85",
+        gameOver: "#d24343",
+        shadowRgb: "26, 78, 52",
+      };
 
       const state = {
         running: false,
@@ -346,21 +362,21 @@
       }
 
       function drawCloud(c) {
-        ctx.fillStyle = "#d6d6d6";
+        ctx.fillStyle = PALETTE.cloud;
         ctx.fillRect(c.x, c.y + 8, c.w, c.h - 8);
         ctx.fillRect(c.x + 8, c.y, c.w * 0.45, c.h * 0.7);
         ctx.fillRect(c.x + c.w * 0.42, c.y + 2, c.w * 0.46, c.h * 0.8);
       }
 
       function drawGround() {
-        ctx.strokeStyle = "#9e9e9e";
+        ctx.strokeStyle = PALETTE.groundLine;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(0, GROUND_Y + 0.5);
         ctx.lineTo(WIDTH, GROUND_Y + 0.5);
         ctx.stroke();
 
-        ctx.fillStyle = "#bdbdbd";
+        ctx.fillStyle = PALETTE.groundDust;
         for (const g of groundSegments) {
           ctx.fillRect(g.x, GROUND_Y + 6, g.len, 2);
         }
@@ -371,7 +387,7 @@
         const spread = 1 + altitude / 85;
         const alpha = Math.max(0.06, 0.18 - altitude / 420);
         ctx.save();
-        ctx.fillStyle = `rgba(40, 40, 40, ${alpha.toFixed(3)})`;
+        ctx.fillStyle = `rgba(${PALETTE.shadowRgb}, ${alpha.toFixed(3)})`;
         ctx.beginPath();
         ctx.ellipse(dino.x + dino.width / 2, GROUND_Y + 4, 14 * spread, 4.2 * spread, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -408,55 +424,73 @@
         ctx.translate(pivotX, pivotY);
         ctx.scale(scaleX, scaleY);
         ctx.translate(-pivotX, -pivotY);
-        ctx.fillStyle = "#535353";
+        ctx.fillStyle = PALETTE.dinoBase;
 
         if (dino.ducking) {
-          ctx.fillRect(x + 2, y + 10, 33, 14);
-          ctx.fillRect(x + 10, y + 6, 22, 7);
-          ctx.fillRect(x + 30, y + 4, 11, 12);
-          ctx.fillRect(x + 36, y + 7, 8, 7);
-          ctx.fillRect(x + 5, y + 18, 7, 6);
-          ctx.fillRect(x + 11, y + 20, 7, 4);
-          ctx.fillRect(x + (runAlt ? 18 : 24), y + 22, 8, 6);
-          ctx.fillStyle = "#6a6a6a";
-          ctx.fillRect(x + 14, y + 12, 14, 3);
-          ctx.fillStyle = "#535353";
+          ctx.fillRect(x + 0, y + 16, 10, 7);
+          ctx.fillRect(x + 6, y + 13, 24, 10);
+          ctx.fillRect(x + 27, y + 9, 13, 10);
+          ctx.fillRect(x + 37, y + 11, 7, 5);
+          ctx.fillRect(x + 11, y + 20, 16, 3);
+          ctx.fillRect(x + 6, y + 19, 4, 5);
+          ctx.fillRect(x + (runAlt ? 16 : 23), y + 22, 8, 5);
+
+          ctx.fillStyle = PALETTE.dinoEye;
+          if (eyeOpen) ctx.fillRect(x + 32, y + 12, 2, 2);
+          ctx.fillStyle = PALETTE.dinoAccent;
+          ctx.fillRect(x + 10, y + 15, 16, 2);
+          ctx.fillRect(x + 31, y + 14, 10, 1);
+          ctx.fillStyle = PALETTE.dinoBase;
         } else {
-          ctx.fillRect(x + 7, y + 8, 16, h - 11);
-          ctx.fillRect(x + 6, y + 16, 24, 11);
-          ctx.fillRect(x + 22, y + 2, 16, 18);
-          ctx.fillRect(x + 33, y + 6, 10, 7);
-          ctx.fillRect(x + 4, y + 20, 5, 11);
-          ctx.fillRect(x + 11, y + h - 7, 8, 7);
-          ctx.fillRect(x + (runAlt ? 23 : 19), y + h - 7, 8, 7);
-          ctx.fillRect(x + 11, y + h - 2, 5, 2);
-          ctx.fillRect(x + (runAlt ? 27 : 23), y + h - 2, 5, 2);
-          ctx.fillStyle = "#6a6a6a";
-          ctx.fillRect(x + 11, y + 12, 13, 3);
-          ctx.fillRect(x + 11, y + 20, 16, 2);
-          ctx.fillStyle = "#f7f7f7";
-          if (eyeOpen) ctx.fillRect(x + 31, y + 5, 3, 3);
-          ctx.fillStyle = "#535353";
+          ctx.fillRect(x + 2, y + 22, 8, 6);
+          ctx.fillRect(x + 0, y + 24, 4, 4);
+          ctx.fillRect(x + 8, y + 14, 18, 14);
+          ctx.fillRect(x + 22, y + 9, 7, 10);
+          ctx.fillRect(x + 26, y + 3, 12, 12);
+          ctx.fillRect(x + 36, y + 6, 8, 6);
+          ctx.fillRect(x + 33, y + 11, 9, 3);
+          ctx.fillRect(x + 18, y + 19, 4, 4);
+
+          if (runAlt) {
+            ctx.fillRect(x + 10, y + h - 8, 7, 8);
+            ctx.fillRect(x + 11, y + h - 1, 5, 2);
+            ctx.fillRect(x + 22, y + h - 6, 7, 6);
+            ctx.fillRect(x + 24, y + h - 1, 5, 2);
+          } else {
+            ctx.fillRect(x + 10, y + h - 6, 7, 6);
+            ctx.fillRect(x + 12, y + h - 1, 5, 2);
+            ctx.fillRect(x + 22, y + h - 8, 7, 8);
+            ctx.fillRect(x + 23, y + h - 1, 5, 2);
+          }
+
+          ctx.fillStyle = PALETTE.dinoEye;
+          if (eyeOpen) ctx.fillRect(x + 33, y + 6, 2, 2);
+
+          ctx.fillStyle = PALETTE.dinoAccent;
+          ctx.fillRect(x + 10, y + 16, 11, 2);
+          ctx.fillRect(x + 10, y + 24, 12, 2);
+          ctx.fillRect(x + 31, y + 12, 10, 1);
+          ctx.fillStyle = PALETTE.dinoBase;
         }
         ctx.restore();
       }
 
       function drawCactus(o) {
-        ctx.fillStyle = "#535353";
+        ctx.fillStyle = PALETTE.cactusBase;
         ctx.fillRect(o.x + 8, o.y + 2, o.width - 16, o.height - 2);
         ctx.fillRect(o.x + 5, o.y + 4, 4, 6);
         ctx.fillRect(o.x + o.width - 9, o.y + 9, 4, 7);
         ctx.fillRect(o.x + 2, o.y + 11, 8, 13);
         ctx.fillRect(o.x + o.width - 10, o.y + 17, 8, 15);
-        ctx.fillStyle = "#6a6a6a";
+        ctx.fillStyle = PALETTE.cactusAccent;
         ctx.fillRect(o.x + 12, o.y + 6, 2, o.height - 12);
         ctx.fillRect(o.x + o.width - 14, o.y + 10, 2, o.height - 18);
-        ctx.fillStyle = "#535353";
+        ctx.fillStyle = PALETTE.cactusBase;
       }
 
       function drawPteranodon(o) {
         const wingUp = o.wing < 9;
-        ctx.fillStyle = "#535353";
+        ctx.fillStyle = PALETTE.pteraBase;
         ctx.fillRect(o.x + 11, o.y + 11, 22, 8);
         ctx.fillRect(o.x + 31, o.y + 9, 10, 7);
         ctx.fillRect(o.x + 38, o.y + 7, 5, 4);
@@ -470,9 +504,9 @@
           ctx.fillRect(o.x + 16, o.y + 18, 13, 4);
           ctx.fillRect(o.x + 24, o.y + 20, 12, 4);
         }
-        ctx.fillStyle = "#6a6a6a";
+        ctx.fillStyle = PALETTE.pteraAccent;
         ctx.fillRect(o.x + 15, o.y + 12, 11, 2);
-        ctx.fillStyle = "#535353";
+        ctx.fillStyle = PALETTE.pteraBase;
       }
 
       function drawObstacles() {
@@ -485,7 +519,7 @@
       function drawScore() {
         const scoreText = String(Math.floor(state.score)).padStart(5, "0");
         const hiText = String(Math.floor(state.hi)).padStart(5, "0");
-        ctx.fillStyle = "#6f6f6f";
+        ctx.fillStyle = PALETTE.uiText;
         ctx.font = "20px monospace";
         ctx.textAlign = "right";
         ctx.fillText(`HI ${hiText}  ${scoreText}`, WIDTH - 18, 28);
@@ -495,7 +529,7 @@
         if (state.running || state.gameOver) return;
         state.blinkTick = (state.blinkTick + 1) % 80;
         if (state.blinkTick > 40) return;
-        ctx.fillStyle = "#8a8a8a";
+        ctx.fillStyle = PALETTE.promptText;
         ctx.font = "18px monospace";
         ctx.textAlign = "center";
         ctx.fillText("PRESS SPACE TO START", WIDTH / 2, 82);
@@ -503,7 +537,7 @@
 
       function drawGameOver() {
         if (!state.gameOver) return;
-        ctx.fillStyle = "#535353";
+        ctx.fillStyle = PALETTE.gameOver;
         ctx.font = "28px monospace";
         ctx.textAlign = "center";
         ctx.fillText("GAME OVER", WIDTH / 2, 78);
@@ -513,7 +547,7 @@
 
         const bx = WIDTH / 2 - 20;
         const by = 120;
-        ctx.strokeStyle = "#777";
+        ctx.strokeStyle = PALETTE.uiText;
         ctx.strokeRect(bx, by, 40, 24);
         ctx.beginPath();
         ctx.moveTo(bx + 20, by + 5);
