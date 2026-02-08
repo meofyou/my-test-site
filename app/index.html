@@ -98,14 +98,22 @@
     <div class="game-wrap">
       <div class="play-layout">
         <div class="game-screen">
-          <canvas id="game" width="1120" height="300" aria-label="Chrome Dino Game"></canvas>
+          <canvas
+            id="game"
+            width="1120"
+            height="300"
+            aria-label="Chrome Dino Game"
+          ></canvas>
         </div>
         <aside class="score-board" aria-label="Top 10 scores">
           <h2>TOP 10 SCORE</h2>
           <ol id="top10List"></ol>
         </aside>
       </div>
-      <div class="help">`Space` / `↑`: 점프, `↓`: 숙이기(프테라노돈 회피), 게임 오버 시 `Space`로 재시작</div>
+      <div class="help">
+        `Space` / `↑`: 점프, `↓`: 숙이기(프테라노돈 회피), 게임 오버 시
+        `Space`로 재시작
+      </div>
     </div>
 
     <script>
@@ -151,7 +159,6 @@
       const top10List = document.getElementById("top10List");
 
       const spriteSheet = new Image();
-      spriteSheet.src = "./offline-sprite-1x.png";
       const SPRITE = {
         dino: {
           x: 848,
@@ -240,7 +247,10 @@
           return;
         }
         top10List.innerHTML = state.top10
-          .map((score, index) => `<li>#${String(index + 1).padStart(2, "0")} - ${score} 점</li>`)
+          .map(
+            (score, index) =>
+              `<li>#${String(index + 1).padStart(2, "0")} - ${score} 점</li>`,
+          )
           .join("");
       }
 
@@ -248,7 +258,9 @@
         if (state.scoreLogged) return;
         state.scoreLogged = true;
         const finalScore = Math.floor(score);
-        state.top10 = [...state.top10, finalScore].sort((a, b) => b - a).slice(0, 10);
+        state.top10 = [...state.top10, finalScore]
+          .sort((a, b) => b - a)
+          .slice(0, 10);
         localStorage.setItem(TOP10_KEY, JSON.stringify(state.top10));
         renderTop10();
       }
@@ -285,7 +297,10 @@
         else if (state.score < 500) gap += rand(10, 35);
 
         // Every phrase can include a breathing beat. It appears more often early.
-        if (state.rhythmStep % 4 === 3 && Math.random() < 0.72 - difficulty * 0.42) {
+        if (
+          state.rhythmStep % 4 === 3 &&
+          Math.random() < 0.72 - difficulty * 0.42
+        ) {
           gap += rand(90, 160);
         }
 
@@ -424,10 +439,16 @@
         for (const g of groundSegments) {
           g.x -= state.speed;
         }
-        while (groundSegments.length && groundSegments[0].x + groundSegments[0].len < -10) {
+        while (
+          groundSegments.length &&
+          groundSegments[0].x + groundSegments[0].len < -10
+        ) {
           groundSegments.shift();
         }
-        if (!groundSegments.length || groundSegments[groundSegments.length - 1].x < WIDTH - 30) {
+        if (
+          !groundSegments.length ||
+          groundSegments[groundSegments.length - 1].x < WIDTH - 30
+        ) {
           addGroundSegment(WIDTH + rand(12, 80));
         }
       }
@@ -472,7 +493,12 @@
       }
 
       function intersects(a, b) {
-        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+        return (
+          a.x < b.x + b.w &&
+          a.x + a.w > b.x &&
+          a.y < b.y + b.h &&
+          a.y + a.h > b.y
+        );
       }
 
       function checkCollision() {
@@ -551,7 +577,15 @@
         ctx.save();
         ctx.fillStyle = `rgba(${PALETTE.shadowRgb}, ${alpha.toFixed(3)})`;
         ctx.beginPath();
-        ctx.ellipse(dino.x + dino.width / 2, GROUND_Y + 4, 14 * spread, 4.2 * spread, 0, 0, Math.PI * 2);
+        ctx.ellipse(
+          dino.x + dino.width / 2,
+          GROUND_Y + 4,
+          14 * spread,
+          4.2 * spread,
+          0,
+          0,
+          Math.PI * 2,
+        );
         ctx.fill();
         ctx.restore();
       }
@@ -611,7 +645,17 @@
         if (spriteSheet.complete && spriteSheet.naturalWidth > 0) {
           const small = o.width < 30;
           const src = small ? SPRITE.cactus.small : SPRITE.cactus.large;
-          ctx.drawImage(spriteSheet, src.x, src.y, src.w, src.h, o.x, o.y, o.width, o.height);
+          ctx.drawImage(
+            spriteSheet,
+            src.x,
+            src.y,
+            src.w,
+            src.h,
+            o.x,
+            o.y,
+            o.width,
+            o.height,
+          );
           return;
         }
         ctx.fillStyle = PALETTE.cactusBase;
@@ -622,7 +666,17 @@
         if (spriteSheet.complete && spriteSheet.naturalWidth > 0) {
           const frame = o.wing < 9 ? 0 : 1;
           const sx = SPRITE.ptera.x + SPRITE.ptera.frames[frame];
-          ctx.drawImage(spriteSheet, sx, SPRITE.ptera.y, SPRITE.ptera.w, SPRITE.ptera.h, o.x, o.y, o.width, o.height);
+          ctx.drawImage(
+            spriteSheet,
+            sx,
+            SPRITE.ptera.y,
+            SPRITE.ptera.w,
+            SPRITE.ptera.h,
+            o.x,
+            o.y,
+            o.width,
+            o.height,
+          );
           return;
         }
         ctx.fillStyle = PALETTE.pteraBase;
@@ -730,8 +784,17 @@
       }
       renderTop10();
 
-      restart();
-      loop();
+      let booted = false;
+      function bootGame() {
+        if (booted) return;
+        booted = true;
+        restart();
+        loop();
+      }
+
+      spriteSheet.addEventListener("load", bootGame);
+      spriteSheet.addEventListener("error", bootGame);
+      spriteSheet.src = "./offline-sprite-1x.png";
     </script>
   </body>
 </html>
