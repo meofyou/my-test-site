@@ -138,13 +138,13 @@
       const TOP10_KEY = "dino-top10";
       const PALETTE = {
         cloud: "#6ea7cf",
-        groundLine: "#3e7d4f",
-        groundDust: "#69a96f",
-        dinoBase: "#1f9e5a",
-        dinoAccent: "#176c40",
-        dinoEye: "#ffffff",
-        cactusBase: "#2f9f66",
-        cactusAccent: "#1f6f47",
+        groundLine: "#8a5b2c",
+        groundDust: "#bb8b55",
+        dinoBase: "#667a8c",
+        dinoAccent: "#3d4f61",
+        dinoEye: "#111827",
+        cactusBase: "#5c9641",
+        cactusAccent: "#2e6130",
         pteraBase: "#ff8b3d",
         pteraAccent: "#a84b1f",
         uiText: "#2b4663",
@@ -165,7 +165,16 @@
           { x: 88, y: 0, w: 44, h: 47 },
         ],
         jump: { x: 0, y: 0, w: 44, h: 47 },
-        duck: { x: 132, y: 18, w: 59, h: 29 },
+        duck: [
+          { x: 132, y: 18, w: 59, h: 29 },
+          { x: 191, y: 18, w: 59, h: 29 },
+        ],
+      };
+
+      const obstacleRenderSheet = {
+        ready: false,
+        cactusSmall: null,
+        cactusLarge: null,
       };
 
       const SPRITE = {
@@ -226,45 +235,96 @@
       function buildDinoRenderSheet() {
         if (dinoRenderSheet.ready || !(obstacleSheet.complete && obstacleSheet.naturalWidth > 0)) return;
 
+        const recolorRegion = (
+          targetCtx,
+          sx,
+          sy,
+          sw,
+          sh,
+          dx,
+          dy,
+          base,
+          accent,
+          alphaCut = 246,
+          accentCut = 108,
+        ) => {
+          targetCtx.drawImage(obstacleSheet, sx, sy, sw, sh, dx, dy, sw, sh);
+          const imgData = targetCtx.getImageData(dx, dy, sw, sh);
+          const data = imgData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const a = data[i + 3];
+            if (!a) continue;
+            const bright = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            if (bright > alphaCut) {
+              data[i + 3] = 0;
+              continue;
+            }
+            const useAccent = bright < accentCut;
+            data[i] = useAccent ? accent[0] : base[0];
+            data[i + 1] = useAccent ? accent[1] : base[1];
+            data[i + 2] = useAccent ? accent[2] : base[2];
+            data[i + 3] = 255;
+          }
+          targetCtx.putImageData(imgData, dx, dy);
+        };
+
         const canvasEl = document.createElement("canvas");
-        canvasEl.width = 191;
+        canvasEl.width = 250;
         canvasEl.height = 47;
         const c = canvasEl.getContext("2d");
         c.imageSmoothingEnabled = false;
 
-        c.drawImage(obstacleSheet, 677, 2, 44, 47, 0, 0, 44, 47);
-        c.drawImage(obstacleSheet, 677, 2, 44, 47, 44, 0, 44, 47);
-        c.drawImage(obstacleSheet, 721, 2, 44, 47, 88, 0, 44, 47);
-        c.drawImage(obstacleSheet, 1011, 20, 59, 29, 132, 18, 59, 29);
+        const dinoBase = [102, 122, 140];
+        const dinoAccent = [61, 79, 97];
 
-        const imgData = c.getImageData(0, 0, canvasEl.width, canvasEl.height);
-        const data = imgData.data;
-        const base = [31, 158, 90];
-        const accent = [23, 108, 64];
+        recolorRegion(c, 677, 2, 44, 47, 0, 0, dinoBase, dinoAccent);
+        recolorRegion(c, 677, 2, 44, 47, 44, 0, dinoBase, dinoAccent);
+        recolorRegion(c, 721, 2, 44, 47, 88, 0, dinoBase, dinoAccent);
+        recolorRegion(c, 943, 20, 59, 29, 132, 18, dinoBase, dinoAccent);
+        recolorRegion(c, 1002, 20, 59, 29, 191, 18, dinoBase, dinoAccent);
 
-        for (let i = 0; i < data.length; i += 4) {
-          const a = data[i + 3];
-          if (!a) continue;
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const bright = (r + g + b) / 3;
-
-          if (bright > 200) {
-            data[i + 3] = 0;
-            continue;
-          }
-
-          const useAccent = bright < 95;
-          data[i] = useAccent ? accent[0] : base[0];
-          data[i + 1] = useAccent ? accent[1] : base[1];
-          data[i + 2] = useAccent ? accent[2] : base[2];
-          data[i + 3] = 255;
-        }
-
-        c.putImageData(imgData, 0, 0);
         dinoRenderSheet.canvas = canvasEl;
         dinoRenderSheet.ready = true;
+
+        if (!obstacleRenderSheet.ready) {
+          const cactusSmall = document.createElement("canvas");
+          cactusSmall.width = SPRITE.cactus.small.w;
+          cactusSmall.height = SPRITE.cactus.small.h;
+          const cs = cactusSmall.getContext("2d");
+          cs.imageSmoothingEnabled = false;
+          recolorRegion(
+            cs,
+            SPRITE.cactus.small.x,
+            SPRITE.cactus.small.y,
+            SPRITE.cactus.small.w,
+            SPRITE.cactus.small.h,
+            0,
+            0,
+            [92, 150, 65],
+            [46, 97, 48],
+          );
+
+          const cactusLarge = document.createElement("canvas");
+          cactusLarge.width = SPRITE.cactus.large.w;
+          cactusLarge.height = SPRITE.cactus.large.h;
+          const cl = cactusLarge.getContext("2d");
+          cl.imageSmoothingEnabled = false;
+          recolorRegion(
+            cl,
+            SPRITE.cactus.large.x,
+            SPRITE.cactus.large.y,
+            SPRITE.cactus.large.w,
+            SPRITE.cactus.large.h,
+            0,
+            0,
+            [92, 150, 65],
+            [46, 97, 48],
+          );
+
+          obstacleRenderSheet.cactusSmall = cactusSmall;
+          obstacleRenderSheet.cactusLarge = cactusLarge;
+          obstacleRenderSheet.ready = true;
+        }
       }
 
       function loadTop10() {
@@ -643,10 +703,12 @@
         }
 
         const runningFrame = Math.floor(state.tick / 8) % 2;
-        const blinkClosed = Math.floor(state.tick / 24) % 9 === 0;
+        const duckFrame = Math.floor(state.tick / 10) % 2;
+        const blinkClosed = Math.floor((state.tick + 96) / 24) % 9 === 0;
+        const runBob = state.running && dino.grounded ? Math.sin(state.tick * 0.56) * 1.2 : 0;
         let src = dinoRenderSheet.stand;
         let dx = x - 8;
-        let dy = feetY - 78;
+        let dy = feetY - 78 + runBob;
         let dw = 74;
         let dh = 78;
         let eyeX = 0;
@@ -655,26 +717,26 @@
         let eyeH = 3;
 
         if (dino.ducking) {
-          src = dinoRenderSheet.duck;
-          dx = x - 16;
-          dy = feetY - 48;
+          src = dinoRenderSheet.duck[duckFrame];
+          dx = x - 20;
+          dy = feetY - 48 + Math.sin(state.tick * 0.5) * 0.6;
           dw = 96;
           dh = 48;
-          eyeX = dx + 69;
-          eyeY = dy + 13;
-          eyeW = 4;
+          eyeX = dx + 70;
+          eyeY = dy + 14;
+          eyeW = 3;
           eyeH = 3;
         } else if (state.running && !state.gameOver && dino.grounded) {
           src = dinoRenderSheet.run[runningFrame];
           dy += runningFrame === 0 ? 0 : 1;
-          eyeX = dx + 47;
-          eyeY = dy + 20;
+          eyeX = dx + 49;
+          eyeY = dy + 21;
         } else if (!dino.grounded) {
           src = dinoRenderSheet.jump;
-          eyeX = dx + 47;
-          eyeY = dy + 20;
+          eyeX = dx + 49;
+          eyeY = dy + 21;
         } else {
-          eyeX = dx + 47;
+          eyeX = dx + 49;
           eyeY = dy + 20;
         }
 
@@ -697,15 +759,19 @@
       }
 
       function drawCactus(o) {
-        if (obstacleSheet.complete && obstacleSheet.naturalWidth > 0) {
+        buildDinoRenderSheet();
+        if (obstacleRenderSheet.ready) {
           const small = o.width < 30;
-          const src = small ? SPRITE.cactus.small : SPRITE.cactus.large;
+          const src = small
+            ? obstacleRenderSheet.cactusSmall
+            : obstacleRenderSheet.cactusLarge;
+          if (!src) return;
           ctx.drawImage(
-            obstacleSheet,
-            src.x,
-            src.y,
-            src.w,
-            src.h,
+            src,
+            0,
+            0,
+            src.width,
+            src.height,
             o.x,
             o.y,
             o.width,
@@ -840,6 +906,27 @@
         localStorage.setItem(TOP10_KEY, JSON.stringify(state.top10));
       }
       renderTop10();
+
+      window.__dinoDebug = {
+        restart,
+        beginGame,
+        jump,
+        update,
+        render,
+        setInput(next) {
+          if (typeof next.up === "boolean") input.up = next.up;
+          if (typeof next.down === "boolean") input.down = next.down;
+        },
+        setState(next) {
+          Object.assign(state, next || {});
+        },
+        setDino(next) {
+          Object.assign(dino, next || {});
+        },
+        clearObstacles() {
+          obstacles.length = 0;
+        },
+      };
 
       restart();
       loop();
