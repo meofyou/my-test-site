@@ -124,12 +124,16 @@
       const DINO_WIDTH = 60;
       const DINO_STAND_HEIGHT = 60;
       const DINO_DUCK_HEIGHT = 34;
+      const DINO_STAND_RENDER_W = 84;
+      const DINO_STAND_RENDER_H = 86;
+      const DINO_DUCK_RENDER_W = 102;
+      const DINO_DUCK_RENDER_H = 42;
       const DIFFICULTY_RAMP_START = 100;
       const DIFFICULTY_SCORE_MAX = 1450;
       const RHYTHM_PATTERN = [1.42, 1.18, 1.32, 1.06, 1.52, 1.2, 1.35, 1.0];
       const TOP10_KEY = "dino-top10";
       const PALETTE = {
-        cloud: "#89b6d8",
+        cloud: "#6ea7cf",
         groundLine: "#3e7d4f",
         groundDust: "#69a96f",
         dinoBase: "#1f9e5a",
@@ -147,7 +151,7 @@
       const top10List = document.getElementById("top10List");
 
       const spriteSheet = new Image();
-      spriteSheet.src = "https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/offline-sprite-1x.png";
+      spriteSheet.src = "./offline-sprite-1x.png";
       const SPRITE = {
         dino: {
           x: 848,
@@ -302,6 +306,7 @@
             width: 62,
             height: 54,
             wing: 0,
+            prevX: spawnX,
           });
           return;
         }
@@ -314,6 +319,7 @@
             y: GROUND_Y - 52,
             width: 34,
             height: 52,
+            prevX: spawnX,
           });
           return;
         }
@@ -324,6 +330,7 @@
           y: GROUND_Y - 72,
           width: 44,
           height: 72,
+          prevX: spawnX,
         });
       }
 
@@ -429,6 +436,7 @@
         if (!state.running || state.gameOver) return;
 
         for (const o of obstacles) {
+          o.prevX = o.x;
           o.x -= state.speed;
           if (o.type === "ptera") {
             o.wing = (o.wing + 1) % 18;
@@ -482,7 +490,11 @@
 
         for (const o of obstacles) {
           const ob = getObstacleHitbox(o);
-          const xOverlap = db.x < ob.x + ob.w && db.x + db.w > ob.x;
+          const xNowOverlap = db.x < ob.x + ob.w && db.x + db.w > ob.x;
+          const prevRight = (o.prevX ?? o.x) + ob.w;
+          const nowLeft = ob.x;
+          const xSweepOverlap = prevRight >= db.x && nowLeft <= db.x + db.w;
+          const xOverlap = xNowOverlap || xSweepOverlap;
 
           if (o.type === "ptera") {
             if (xOverlap && !dino.ducking) {
@@ -547,22 +559,23 @@
       function drawDino() {
         const x = dino.x;
         const y = dino.y;
+        const feetY = y + dino.height;
 
         if (!(spriteSheet.complete && spriteSheet.naturalWidth > 0)) {
           ctx.fillStyle = PALETTE.dinoBase;
-          ctx.fillRect(x + 8, y + 8, 30, h - 8);
+          ctx.fillRect(x + 8, y + 8, 40, dino.height - 8);
           return;
         }
 
-        const runningFrame = Math.floor(dino.frame / 6) % 2;
+        const runningFrame = Math.floor(state.tick / 7) % 2;
         let sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
         let sy = SPRITE.dino.y;
         let sw = SPRITE.dino.w;
         let sh = SPRITE.dino.h;
-        let dx = x - 6;
-        let dy = y - 10;
-        let dw = 72;
-        let dh = 78;
+        let dx = x - 11;
+        let dy = feetY - DINO_STAND_RENDER_H;
+        let dw = DINO_STAND_RENDER_W;
+        let dh = DINO_STAND_RENDER_H;
 
         if (state.gameOver) {
           sx = SPRITE.dino.x + SPRITE.dino.crashedFrame;
@@ -570,10 +583,10 @@
           sx = SPRITE.dino.x + SPRITE.dino.duckFrames[runningFrame];
           sw = SPRITE.dino.duckW;
           sh = SPRITE.dino.duckH;
-          dx = x - 11;
-          dy = y;
-          dw = 94;
-          dh = 40;
+          dx = x - 14;
+          dy = feetY - DINO_DUCK_RENDER_H;
+          dw = DINO_DUCK_RENDER_W;
+          dh = DINO_DUCK_RENDER_H;
         } else if (!state.running) {
           sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
         } else if (!dino.grounded) {
