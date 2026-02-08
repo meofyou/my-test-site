@@ -26,7 +26,7 @@
       }
 
       .game-wrap {
-        width: min(1160px, 96vw);
+        width: min(1360px, 97vw);
       }
 
       .play-layout {
@@ -51,7 +51,7 @@
       }
 
       .score-board {
-        width: 220px;
+        width: 250px;
         border: 1px solid var(--line);
         background: #f3f9ff;
         border-radius: 8px;
@@ -98,14 +98,14 @@
     <div class="game-wrap">
       <div class="play-layout">
         <div class="game-screen">
-          <canvas id="game" width="920" height="220" aria-label="Chrome Dino Game"></canvas>
+          <canvas id="game" width="1120" height="300" aria-label="Chrome Dino Game"></canvas>
         </div>
         <aside class="score-board" aria-label="Top 10 scores">
           <h2>TOP 10 SCORE</h2>
           <ol id="top10List"></ol>
         </aside>
       </div>
-      <div class="help">`Space` / `↑`: 점프, `↓`: 숙이기, 게임 오버 시 `Space`로 재시작</div>
+      <div class="help">`Space` / `↑`: 점프, `↓`: 숙이기(프테라노돈 회피), 게임 오버 시 `Space`로 재시작</div>
     </div>
 
     <script>
@@ -114,7 +114,7 @@
 
       const WIDTH = canvas.width;
       const HEIGHT = canvas.height;
-      const GROUND_Y = 182;
+      const GROUND_Y = HEIGHT - 52;
       const GRAVITY = 0.56;
       const JUMP_POWER = 11.6;
       const EXTRA_JUMP_FRAMES = 6;
@@ -142,8 +142,32 @@
       };
       const top10List = document.getElementById("top10List");
 
-      const dinoGif = new Image();
-      dinoGif.src = "https://upload.wikimedia.org/wikipedia/commons/d/d6/Dino_anim_150ms_loop.gif";
+      const spriteSheet = new Image();
+      spriteSheet.src = "https://raw.githubusercontent.com/wayou/t-rex-runner/gh-pages/assets/offline-sprite-1x.png";
+      const SPRITE = {
+        dino: {
+          x: 848,
+          y: 2,
+          w: 44,
+          h: 47,
+          runFrames: [88, 132],
+          jumpFrame: 0,
+          duckFrames: [264, 323],
+          duckW: 59,
+          duckH: 25,
+        },
+        cactus: {
+          small: { x: 228, y: 2, w: 17, h: 35 },
+          large: { x: 332, y: 2, w: 25, h: 50 },
+        },
+        ptera: {
+          x: 134,
+          y: 2,
+          w: 46,
+          h: 40,
+          frames: [0, 46],
+        },
+      };
 
       const state = {
         running: false,
@@ -265,13 +289,12 @@
         const isPtera = state.score > 170 && Math.random() < pteraChance;
         const spawnX = WIDTH + rand(18, 32);
         if (isPtera) {
-          const lowFlight = state.score > 250 && Math.random() < 0.62;
           obstacles.push({
             type: "ptera",
             x: spawnX,
-            y: lowFlight ? GROUND_Y - 49 : GROUND_Y - 72,
+            y: GROUND_Y - 60,
             width: 46,
-            height: 30,
+            height: 40,
             wing: 0,
           });
           return;
@@ -427,7 +450,7 @@
 
       function getObstacleHitbox(o) {
         if (o.type === "ptera") {
-          return { x: o.x + 5, y: o.y + 8, w: o.width - 10, h: o.height - 13 };
+          return { x: o.x + 3, y: o.y + 6, w: o.width - 6, h: o.height - 10 };
         }
         return { x: o.x + 3, y: o.y + 2, w: o.width - 6, h: o.height - 4 };
       }
@@ -493,20 +516,15 @@
       }
 
       function drawDino() {
-        if (dinoGif.complete && dinoGif.naturalWidth > 0) {
-          const drawW = dino.ducking ? 48 : 46;
-          const drawH = dino.ducking ? 34 : 44;
-          const drawX = dino.x - (dino.ducking ? 2 : 1);
-          const drawY = dino.y + (dino.ducking ? -6 : 0);
-          ctx.drawImage(dinoGif, drawX, drawY, drawW, drawH);
-          return;
-        }
-
-        const runAlt = dino.frame < 6;
-        const eyeOpen = Math.floor(state.tick / 26) % 8 !== 0;
         const x = dino.x;
         const y = dino.y;
         const h = dino.height;
+
+        if (!(spriteSheet.complete && spriteSheet.naturalWidth > 0)) {
+          ctx.fillStyle = PALETTE.dinoBase;
+          ctx.fillRect(x + 8, y + 8, 30, h - 8);
+          return;
+        }
 
         let scaleX = 1;
         let scaleY = 1;
@@ -525,95 +543,58 @@
           scaleY -= 0.09 * squash;
         }
 
+        const runningFrame = Math.floor(dino.frame / 6) % 2;
+        let sx = SPRITE.dino.x + SPRITE.dino.runFrames[runningFrame];
+        let sy = SPRITE.dino.y;
+        let sw = SPRITE.dino.w;
+        let sh = SPRITE.dino.h;
+        let dx = x - 1;
+        let dy = y - 3;
+        let dw = 46;
+        let dh = 47;
+
+        if (!dino.grounded) {
+          sx = SPRITE.dino.x + SPRITE.dino.jumpFrame;
+        } else if (dino.ducking) {
+          sx = SPRITE.dino.x + SPRITE.dino.duckFrames[runningFrame];
+          sw = SPRITE.dino.duckW;
+          sh = SPRITE.dino.duckH;
+          dx = x - 5;
+          dy = y - 1;
+          dw = 62;
+          dh = 30;
+        }
+
         ctx.save();
         const pivotX = x + dino.width / 2;
         const pivotY = y + h;
         ctx.translate(pivotX, pivotY);
         ctx.scale(scaleX, scaleY);
         ctx.translate(-pivotX, -pivotY);
-        ctx.fillStyle = PALETTE.dinoBase;
-
-        if (dino.ducking) {
-          ctx.fillRect(x + 0, y + 16, 10, 7);
-          ctx.fillRect(x + 6, y + 13, 24, 10);
-          ctx.fillRect(x + 27, y + 9, 13, 10);
-          ctx.fillRect(x + 37, y + 11, 7, 5);
-          ctx.fillRect(x + 11, y + 20, 16, 3);
-          ctx.fillRect(x + 6, y + 19, 4, 5);
-          ctx.fillRect(x + (runAlt ? 16 : 23), y + 22, 8, 5);
-
-          ctx.fillStyle = PALETTE.dinoEye;
-          if (eyeOpen) ctx.fillRect(x + 32, y + 12, 2, 2);
-          ctx.fillStyle = PALETTE.dinoAccent;
-          ctx.fillRect(x + 10, y + 15, 16, 2);
-          ctx.fillRect(x + 31, y + 14, 10, 1);
-          ctx.fillStyle = PALETTE.dinoBase;
-        } else {
-          ctx.fillRect(x + 2, y + 22, 8, 6);
-          ctx.fillRect(x + 0, y + 24, 4, 4);
-          ctx.fillRect(x + 8, y + 14, 18, 14);
-          ctx.fillRect(x + 22, y + 9, 7, 10);
-          ctx.fillRect(x + 26, y + 3, 12, 12);
-          ctx.fillRect(x + 36, y + 6, 8, 6);
-          ctx.fillRect(x + 33, y + 11, 9, 3);
-          ctx.fillRect(x + 18, y + 19, 4, 4);
-
-          if (runAlt) {
-            ctx.fillRect(x + 10, y + h - 8, 7, 8);
-            ctx.fillRect(x + 11, y + h - 1, 5, 2);
-            ctx.fillRect(x + 22, y + h - 6, 7, 6);
-            ctx.fillRect(x + 24, y + h - 1, 5, 2);
-          } else {
-            ctx.fillRect(x + 10, y + h - 6, 7, 6);
-            ctx.fillRect(x + 12, y + h - 1, 5, 2);
-            ctx.fillRect(x + 22, y + h - 8, 7, 8);
-            ctx.fillRect(x + 23, y + h - 1, 5, 2);
-          }
-
-          ctx.fillStyle = PALETTE.dinoEye;
-          if (eyeOpen) ctx.fillRect(x + 33, y + 6, 2, 2);
-
-          ctx.fillStyle = PALETTE.dinoAccent;
-          ctx.fillRect(x + 10, y + 16, 11, 2);
-          ctx.fillRect(x + 10, y + 24, 12, 2);
-          ctx.fillRect(x + 31, y + 12, 10, 1);
-          ctx.fillStyle = PALETTE.dinoBase;
-        }
+        ctx.drawImage(spriteSheet, sx, sy, sw, sh, dx, dy, dw, dh);
         ctx.restore();
       }
 
       function drawCactus(o) {
+        if (spriteSheet.complete && spriteSheet.naturalWidth > 0) {
+          const small = o.width < 30;
+          const src = small ? SPRITE.cactus.small : SPRITE.cactus.large;
+          ctx.drawImage(spriteSheet, src.x, src.y, src.w, src.h, o.x, o.y, o.width, o.height);
+          return;
+        }
         ctx.fillStyle = PALETTE.cactusBase;
         ctx.fillRect(o.x + 8, o.y + 2, o.width - 16, o.height - 2);
-        ctx.fillRect(o.x + 5, o.y + 4, 4, 6);
-        ctx.fillRect(o.x + o.width - 9, o.y + 9, 4, 7);
-        ctx.fillRect(o.x + 2, o.y + 11, 8, 13);
-        ctx.fillRect(o.x + o.width - 10, o.y + 17, 8, 15);
-        ctx.fillStyle = PALETTE.cactusAccent;
-        ctx.fillRect(o.x + 12, o.y + 6, 2, o.height - 12);
-        ctx.fillRect(o.x + o.width - 14, o.y + 10, 2, o.height - 18);
-        ctx.fillStyle = PALETTE.cactusBase;
       }
 
       function drawPteranodon(o) {
-        const wingUp = o.wing < 9;
-        ctx.fillStyle = PALETTE.pteraBase;
-        ctx.fillRect(o.x + 11, o.y + 11, 22, 8);
-        ctx.fillRect(o.x + 31, o.y + 9, 10, 7);
-        ctx.fillRect(o.x + 38, o.y + 7, 5, 4);
-        ctx.fillRect(o.x + 7, o.y + 14, 7, 4);
-        if (wingUp) {
-          ctx.fillRect(o.x + 2, o.y + 8, 14, 5);
-          ctx.fillRect(o.x + 16, o.y + 4, 13, 4);
-          ctx.fillRect(o.x + 24, o.y + 2, 12, 4);
-        } else {
-          ctx.fillRect(o.x + 2, o.y + 15, 14, 5);
-          ctx.fillRect(o.x + 16, o.y + 18, 13, 4);
-          ctx.fillRect(o.x + 24, o.y + 20, 12, 4);
+        if (spriteSheet.complete && spriteSheet.naturalWidth > 0) {
+          const frame = o.wing < 9 ? 0 : 1;
+          const sx = SPRITE.ptera.x + SPRITE.ptera.frames[frame];
+          ctx.drawImage(spriteSheet, sx, SPRITE.ptera.y, SPRITE.ptera.w, SPRITE.ptera.h, o.x, o.y, o.width, o.height);
+          return;
         }
-        ctx.fillStyle = PALETTE.pteraAccent;
-        ctx.fillRect(o.x + 15, o.y + 12, 11, 2);
         ctx.fillStyle = PALETTE.pteraBase;
+        ctx.fillRect(o.x + 8, o.y + 10, 28, 8);
       }
 
       function drawObstacles() {
