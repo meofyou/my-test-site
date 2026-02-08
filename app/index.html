@@ -26,7 +26,18 @@
       }
 
       .game-wrap {
-        width: min(920px, 96vw);
+        width: min(1160px, 96vw);
+      }
+
+      .play-layout {
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .game-screen {
+        flex: 1;
+        min-width: 0;
       }
 
       canvas {
@@ -39,17 +50,61 @@
         background: #f8fcff;
       }
 
+      .score-board {
+        width: 220px;
+        border: 1px solid var(--line);
+        background: #f3f9ff;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .score-board h2 {
+        margin: 0 0 10px;
+        font-size: 15px;
+        color: #234869;
+      }
+
+      .score-board ol {
+        margin: 0;
+        padding-left: 22px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: #2f5679;
+      }
+
+      .score-board li {
+        white-space: nowrap;
+      }
+
       .help {
         margin-top: 10px;
         font-size: 13px;
         text-align: center;
         color: #45627f;
       }
+
+      @media (max-width: 980px) {
+        .play-layout {
+          flex-direction: column;
+        }
+
+        .score-board {
+          width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="game-wrap">
-      <canvas id="game" width="920" height="220" aria-label="Chrome Dino Game"></canvas>
+      <div class="play-layout">
+        <div class="game-screen">
+          <canvas id="game" width="920" height="220" aria-label="Chrome Dino Game"></canvas>
+        </div>
+        <aside class="score-board" aria-label="Top 10 scores">
+          <h2>TOP 10 SCORE</h2>
+          <ol id="top10List"></ol>
+        </aside>
+      </div>
       <div class="help">`Space` / `↑`: 점프, `↓`: 숙이기, 게임 오버 시 `Space`로 재시작</div>
     </div>
 
@@ -65,9 +120,10 @@
       const EXTRA_JUMP_FRAMES = 6;
       const EXTRA_JUMP_BOOST = 0.18;
       const BASE_SPEED = 6.2;
-      const DIFFICULTY_RAMP_START = 150;
-      const DIFFICULTY_SCORE_MAX = 1900;
+      const DIFFICULTY_RAMP_START = 100;
+      const DIFFICULTY_SCORE_MAX = 1450;
       const RHYTHM_PATTERN = [1.42, 1.18, 1.32, 1.06, 1.52, 1.2, 1.35, 1.0];
+      const TOP10_KEY = "dino-top10";
       const PALETTE = {
         cloud: "#f1f8ff",
         groundLine: "#3e7d4f",
@@ -84,6 +140,10 @@
         gameOver: "#d24343",
         shadowRgb: "26, 78, 52",
       };
+      const top10List = document.getElementById("top10List");
+
+      const dinoGif = new Image();
+      dinoGif.src = "https://upload.wikimedia.org/wikipedia/commons/d/d6/Dino_anim_150ms_loop.gif";
 
       const state = {
         running: false,
@@ -95,6 +155,8 @@
         blinkTick: 0,
         spawnCooldown: 420,
         rhythmStep: 0,
+        top10: [],
+        scoreLogged: false,
       };
 
       const input = {
@@ -122,6 +184,39 @@
 
       function rand(min, max) {
         return Math.random() * (max - min) + min;
+      }
+
+      function loadTop10() {
+        try {
+          const rows = JSON.parse(localStorage.getItem(TOP10_KEY) || "[]");
+          if (!Array.isArray(rows)) return [];
+          return rows
+            .map((v) => Number(v) || 0)
+            .filter((v) => v > 0)
+            .sort((a, b) => b - a)
+            .slice(0, 10);
+        } catch {
+          return [];
+        }
+      }
+
+      function renderTop10() {
+        if (!state.top10.length) {
+          top10List.innerHTML = "<li>아직 기록 없음</li>";
+          return;
+        }
+        top10List.innerHTML = state.top10
+          .map((score, index) => `<li>#${String(index + 1).padStart(2, "0")} - ${score} 점</li>`)
+          .join("");
+      }
+
+      function recordTop10(score) {
+        if (state.scoreLogged) return;
+        state.scoreLogged = true;
+        const finalScore = Math.floor(score);
+        state.top10 = [...state.top10, finalScore].sort((a, b) => b - a).slice(0, 10);
+        localStorage.setItem(TOP10_KEY, JSON.stringify(state.top10));
+        renderTop10();
       }
 
       function addCloud() {
@@ -152,9 +247,8 @@
         const beat = RHYTHM_PATTERN[state.rhythmStep % RHYTHM_PATTERN.length];
         let gap = baseGap * beat + rand(-14, 20);
 
-        // Make the first section noticeably easier.
-        if (state.score < 300) gap += rand(80, 140);
-        else if (state.score < 700) gap += rand(20, 60);
+        if (state.score < 250) gap += rand(45, 95);
+        else if (state.score < 500) gap += rand(10, 35);
 
         // Every phrase can include a breathing beat. It appears more often early.
         if (state.rhythmStep % 4 === 3 && Math.random() < 0.72 - difficulty * 0.42) {
@@ -167,11 +261,11 @@
 
       function addObstacle() {
         const difficulty = getDifficulty();
-        const pteraChance = Math.max(0, (difficulty - 0.18) * 0.5);
-        const isPtera = state.score > 260 && Math.random() < pteraChance;
+        const pteraChance = Math.max(0, 0.06 + (difficulty - 0.08) * 0.62);
+        const isPtera = state.score > 170 && Math.random() < pteraChance;
         const spawnX = WIDTH + rand(18, 32);
         if (isPtera) {
-          const lowFlight = state.score > 380 && Math.random() < 0.62;
+          const lowFlight = state.score > 250 && Math.random() < 0.62;
           obstacles.push({
             type: "ptera",
             x: spawnX,
@@ -225,6 +319,7 @@
         state.blinkTick = 0;
         state.spawnCooldown = 420;
         state.rhythmStep = 0;
+        state.scoreLogged = false;
         dino.y = GROUND_Y - 44;
         dino.vy = 0;
         dino.grounded = true;
@@ -342,13 +437,16 @@
       }
 
       function checkCollision() {
+        if (state.gameOver) return;
         const db = getDinoHitbox();
         for (const o of obstacles) {
           if (intersects(db, getObstacleHitbox(o))) {
+            const finalScore = Math.floor(state.score);
             state.gameOver = true;
             state.running = false;
-            state.hi = Math.max(state.hi, Math.floor(state.score));
+            state.hi = Math.max(state.hi, finalScore);
             localStorage.setItem("dino-hi", String(state.hi));
+            recordTop10(finalScore);
             return;
           }
         }
@@ -395,6 +493,15 @@
       }
 
       function drawDino() {
+        if (dinoGif.complete && dinoGif.naturalWidth > 0) {
+          const drawW = dino.ducking ? 48 : 46;
+          const drawH = dino.ducking ? 34 : 44;
+          const drawX = dino.x - (dino.ducking ? 2 : 1);
+          const drawY = dino.y + (dino.ducking ? -6 : 0);
+          ctx.drawImage(dinoGif, drawX, drawY, drawW, drawH);
+          return;
+        }
+
         const runAlt = dino.frame < 6;
         const eyeOpen = Math.floor(state.tick / 26) % 8 !== 0;
         const x = dino.x;
@@ -602,6 +709,13 @@
         if (e.code === "Space" || e.code === "ArrowUp") input.up = false;
         if (e.code === "ArrowDown") input.down = false;
       });
+
+      state.top10 = loadTop10();
+      if (!state.top10.length && state.hi > 0) {
+        state.top10 = [state.hi];
+        localStorage.setItem(TOP10_KEY, JSON.stringify(state.top10));
+      }
+      renderTop10();
 
       restart();
       loop();
