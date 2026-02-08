@@ -138,6 +138,8 @@
       const TOP10_KEY = "dino-top10";
       const PALETTE = {
         cloud: "#6ea7cf",
+        cloudShade: "#5a90b6",
+        cloudRgb: "110, 167, 207",
         groundLine: "#8a5b2c",
         groundDust: "#bb8b55",
         dinoBase: "#667a8c",
@@ -175,6 +177,7 @@
         ready: false,
         cactusSmall: null,
         cactusLarge: null,
+        pteraFrames: [],
       };
 
       const SPRITE = {
@@ -227,6 +230,30 @@
       const obstacles = [];
       const clouds = [];
       const groundSegments = [];
+
+      const CLOUD_TARGET = 8;
+      const CLOUD_GAP_MIN = 120;
+      const CLOUD_GAP_MAX = 240;
+      const CLOUD_BANDS = [
+        {
+          yMin: 20,
+          yMax: 54,
+          speedMin: 0.38,
+          speedMax: 0.72,
+          scaleMin: 0.82,
+          scaleMax: 1.0,
+          alpha: 0.8,
+        },
+        {
+          yMin: 52,
+          yMax: 86,
+          speedMin: 0.58,
+          speedMax: 1.08,
+          scaleMin: 0.9,
+          scaleMax: 1.14,
+          alpha: 0.88,
+        },
+      ];
 
       function rand(min, max) {
         return Math.random() * (max - min) + min;
@@ -323,6 +350,31 @@
 
           obstacleRenderSheet.cactusSmall = cactusSmall;
           obstacleRenderSheet.cactusLarge = cactusLarge;
+
+          const pteraFrames = [];
+          for (let i = 0; i < SPRITE.ptera.frames.length; i += 1) {
+            const frameCanvas = document.createElement("canvas");
+            frameCanvas.width = SPRITE.ptera.w;
+            frameCanvas.height = SPRITE.ptera.h;
+            const pf = frameCanvas.getContext("2d");
+            pf.imageSmoothingEnabled = false;
+            recolorRegion(
+              pf,
+              SPRITE.ptera.x + SPRITE.ptera.frames[i],
+              SPRITE.ptera.y,
+              SPRITE.ptera.w,
+              SPRITE.ptera.h,
+              0,
+              0,
+              [255, 139, 61],
+              [168, 75, 31],
+              240,
+              116,
+            );
+            pteraFrames.push(frameCanvas);
+          }
+
+          obstacleRenderSheet.pteraFrames = pteraFrames;
           obstacleRenderSheet.ready = true;
         }
       }
@@ -366,12 +418,32 @@
       }
 
       function addCloud() {
+        const band = CLOUD_BANDS[Math.random() < 0.45 ? 0 : 1];
+        const scale = rand(band.scaleMin, band.scaleMax);
         clouds.push({
-          x: WIDTH + rand(10, 260),
-          y: rand(24, 88),
-          w: rand(42, 68),
-          h: rand(14, 22),
-          speed: rand(0.8, 1.9),
+          x: WIDTH + rand(CLOUD_GAP_MIN, CLOUD_GAP_MAX),
+          y: rand(band.yMin, band.yMax),
+          w: rand(44, 72) * scale,
+          h: rand(14, 24) * scale,
+          speed: rand(band.speedMin, band.speedMax),
+          alpha: band.alpha,
+          phase: rand(0, Math.PI * 2),
+          drift: rand(0.01, 0.024),
+        });
+      }
+
+      function addCloudAt(startX) {
+        const band = CLOUD_BANDS[Math.random() < 0.45 ? 0 : 1];
+        const scale = rand(band.scaleMin, band.scaleMax);
+        clouds.push({
+          x: startX,
+          y: rand(band.yMin, band.yMax),
+          w: rand(44, 72) * scale,
+          h: rand(14, 24) * scale,
+          speed: rand(band.speedMin, band.speedMax),
+          alpha: band.alpha,
+          phase: rand(0, Math.PI * 2),
+          drift: rand(0.01, 0.024),
         });
       }
 
@@ -453,7 +525,11 @@
         obstacles.length = 0;
         clouds.length = 0;
         groundSegments.length = 0;
-        for (let i = 0; i < 6; i += 1) addCloud();
+        let cloudX = -80;
+        for (let i = 0; i < CLOUD_TARGET; i += 1) {
+          cloudX += rand(CLOUD_GAP_MIN, CLOUD_GAP_MAX);
+          addCloudAt(cloudX);
+        }
         let gx = 0;
         while (gx < WIDTH + 120) {
           addGroundSegment(gx);
@@ -527,11 +603,19 @@
 
       function updateClouds() {
         for (const c of clouds) {
-          c.x -= c.speed;
+          c.x -= c.speed + state.speed * 0.035;
+          c.phase += c.drift;
+          c.y += Math.sin(c.phase) * 0.08;
         }
-        if (clouds.length && clouds[0].x + clouds[0].w < -20) {
+
+        clouds.sort((a, b) => a.x - b.x);
+        while (clouds.length && clouds[0].x + clouds[0].w < -30) {
           clouds.shift();
-          addCloud();
+        }
+
+        while (clouds.length < CLOUD_TARGET) {
+          const rightmost = clouds.length ? clouds[clouds.length - 1].x : WIDTH * 0.35;
+          addCloudAt(rightmost + rand(CLOUD_GAP_MIN, CLOUD_GAP_MAX));
         }
       }
 
@@ -650,10 +734,20 @@
       }
 
       function drawCloud(c) {
-        ctx.fillStyle = PALETTE.cloud;
-        ctx.fillRect(c.x, c.y + 8, c.w, c.h - 8);
-        ctx.fillRect(c.x + 8, c.y, c.w * 0.45, c.h * 0.7);
-        ctx.fillRect(c.x + c.w * 0.42, c.y + 2, c.w * 0.46, c.h * 0.8);
+        const mainX = Math.round(c.x);
+        const mainY = Math.round(c.y);
+        const mainW = Math.round(c.w);
+        const mainH = Math.round(c.h);
+
+        ctx.fillStyle = `rgba(${PALETTE.cloudRgb}, ${c.alpha})`;
+        ctx.fillRect(mainX, mainY + Math.round(mainH * 0.34), mainW, Math.round(mainH * 0.58));
+        ctx.fillRect(mainX + Math.round(mainW * 0.08), mainY, Math.round(mainW * 0.38), Math.round(mainH * 0.7));
+        ctx.fillRect(mainX + Math.round(mainW * 0.45), mainY + 1, Math.round(mainW * 0.42), Math.round(mainH * 0.78));
+
+        ctx.fillStyle = PALETTE.cloudShade;
+        ctx.globalAlpha = Math.max(0.14, c.alpha * 0.24);
+        ctx.fillRect(mainX + Math.round(mainW * 0.12), mainY + Math.round(mainH * 0.58), Math.round(mainW * 0.68), Math.max(1, Math.round(mainH * 0.14)));
+        ctx.globalAlpha = 1;
       }
 
       function drawGround() {
@@ -705,6 +799,7 @@
         const runningFrame = Math.floor(state.tick / 8) % 2;
         const duckFrame = Math.floor(state.tick / 10) % 2;
         const blinkClosed = Math.floor((state.tick + 96) / 24) % 9 === 0;
+        const shouldBlink = state.running && !state.gameOver;
         const runBob = state.running && dino.grounded ? Math.sin(state.tick * 0.56) * 1.2 : 0;
         let src = dinoRenderSheet.stand;
         let dx = x - 8;
@@ -752,7 +847,7 @@
           Math.round(dh),
         );
 
-        if (!state.gameOver && !blinkClosed) {
+        if (!state.gameOver && (!shouldBlink || !blinkClosed)) {
           ctx.fillStyle = PALETTE.dinoEye;
           ctx.fillRect(Math.round(eyeX), Math.round(eyeY), eyeW, eyeH);
         }
@@ -784,20 +879,45 @@
       }
 
       function drawPteranodon(o) {
-        if (obstacleSheet.complete && obstacleSheet.naturalWidth > 0) {
+        buildDinoRenderSheet();
+        if (obstacleRenderSheet.ready && obstacleRenderSheet.pteraFrames.length) {
           const frame = o.wing < 9 ? 0 : 1;
-          const sx = SPRITE.ptera.x + SPRITE.ptera.frames[frame];
+          const img = obstacleRenderSheet.pteraFrames[frame];
           ctx.drawImage(
-            obstacleSheet,
-            sx,
-            SPRITE.ptera.y,
-            SPRITE.ptera.w,
-            SPRITE.ptera.h,
+            img,
+            0,
+            0,
+            img.width,
+            img.height,
             o.x,
             o.y,
             o.width,
             o.height,
           );
+
+          ctx.fillStyle = "#23150f";
+          ctx.beginPath();
+          ctx.ellipse(
+            Math.round(o.x + o.width * 0.67),
+            Math.round(o.y + o.height * 0.34),
+            2.2,
+            1.5,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(255, 240, 220, 0.8)";
+          ctx.beginPath();
+          ctx.arc(
+            Math.round(o.x + o.width * 0.685),
+            Math.round(o.y + o.height * 0.32),
+            0.7,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
           return;
         }
         ctx.fillStyle = PALETTE.pteraBase;
