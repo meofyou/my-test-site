@@ -158,6 +158,15 @@
       obstacleSheet.src = "./img/offline-sprite-1x.png";
 
       const SPRITE = {
+        dino: {
+          stand: { x: 677, y: 2, w: 44, h: 47 },
+          run: [
+            { x: 677, y: 2, w: 44, h: 47 },
+            { x: 721, y: 2, w: 44, h: 47 },
+          ],
+          jump: { x: 677, y: 2, w: 44, h: 47 },
+          duck: { x: 952, y: 20, w: 59, h: 29 },
+        },
         cactus: {
           small: { x: 228, y: 2, w: 17, h: 35 },
           large: { x: 332, y: 2, w: 25, h: 50 },
@@ -578,59 +587,44 @@
       function drawDino() {
         const x = dino.x;
         const y = dino.y;
-        const runAlt = Math.floor(state.tick / 8) % 2 === 0;
+        const feetY = y + dino.height;
 
-        ctx.fillStyle = PALETTE.dinoBase;
-        if (dino.ducking) {
-          ctx.fillRect(x + 1, y + 22, 14, 7);
-          ctx.fillRect(x + 10, y + 18, 25, 12);
-          ctx.fillRect(x + 33, y + 15, 15, 10);
-          ctx.fillRect(x + 41, y + 20, 9, 3);
-          ctx.fillRect(x + 21, y + 17, 5, 4);
-          ctx.fillRect(x + 8, y + 29, 4, 5);
-          ctx.fillRect(x + (runAlt ? 18 : 28), y + 28, 6, 6);
-
-          ctx.fillStyle = PALETTE.dinoEye;
-          if (!state.gameOver) ctx.fillRect(x + 39, y + 18, 3, 3);
-          ctx.fillStyle = PALETTE.dinoAccent;
-          ctx.fillRect(x + 12, y + 20, 14, 2);
-          ctx.fillRect(x + 37, y + 22, 10, 1);
+        if (!(obstacleSheet.complete && obstacleSheet.naturalWidth > 0)) {
+          ctx.fillStyle = PALETTE.dinoBase;
+          ctx.fillRect(x + 8, y + 8, 40, dino.height - 8);
           return;
         }
 
-        ctx.fillRect(x + 2, y + 30, 10, 6);
-        ctx.fillRect(x + 5, y + 33, 12, 8);
-        ctx.fillRect(x + 12, y + 24, 22, 18);
-        ctx.fillRect(x + 28, y + 18, 8, 12);
-        ctx.fillRect(x + 34, y + 12, 16, 14);
-        ctx.fillRect(x + 42, y + 18, 10, 4);
-        ctx.fillRect(x + 24, y + 27, 5, 6);
+        const runningFrame = Math.floor(state.tick / 8) % 2;
+        let src = SPRITE.dino.stand;
+        let dx = x - 8;
+        let dy = feetY - 78;
+        let dw = 74;
+        let dh = 78;
 
-        if (state.gameOver) {
-          ctx.fillRect(x + 15, y + 42, 7, 16);
-          ctx.fillRect(x + 26, y + 42, 7, 16);
+        if (dino.ducking) {
+          src = SPRITE.dino.duck;
+          dx = x - 16;
+          dy = feetY - 48;
+          dw = 96;
+          dh = 48;
+        } else if (state.running && !state.gameOver && dino.grounded) {
+          src = SPRITE.dino.run[runningFrame];
         } else if (!dino.grounded) {
-          ctx.fillRect(x + 14, y + 44, 7, 14);
-          ctx.fillRect(x + 25, y + 44, 7, 14);
-        } else if (runAlt) {
-          ctx.fillRect(x + 14, y + 40, 7, 18);
-          ctx.fillRect(x + 25, y + 45, 7, 13);
-        } else {
-          ctx.fillRect(x + 14, y + 45, 7, 13);
-          ctx.fillRect(x + 25, y + 40, 7, 18);
-        }
-        ctx.fillRect(x + 14, y + 57, 9, 3);
-        ctx.fillRect(x + 24, y + 57, 9, 3);
-
-        if (!state.gameOver) {
-          ctx.fillStyle = PALETTE.dinoEye;
-          ctx.fillRect(x + 38, y + 16, 3, 3);
+          src = SPRITE.dino.jump;
         }
 
-        ctx.fillStyle = PALETTE.dinoAccent;
-        ctx.fillRect(x + 14, y + 27, 13, 2);
-        ctx.fillRect(x + 14, y + 37, 16, 2);
-        ctx.fillRect(x + 37, y + 21, 11, 1);
+        ctx.drawImage(
+          obstacleSheet,
+          src.x,
+          src.y,
+          src.w,
+          src.h,
+          Math.round(dx),
+          Math.round(dy),
+          Math.round(dw),
+          Math.round(dh),
+        );
       }
 
       function drawCactus(o) {
