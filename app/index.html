@@ -111,6 +111,7 @@
     <script>
       const canvas = document.getElementById("game");
       const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
 
       const WIDTH = canvas.width;
       const HEIGHT = canvas.height;
@@ -128,7 +129,7 @@
       const RHYTHM_PATTERN = [1.42, 1.18, 1.32, 1.06, 1.52, 1.2, 1.35, 1.0];
       const TOP10_KEY = "dino-top10";
       const PALETTE = {
-        cloud: "#f1f8ff",
+        cloud: "#b7d4eb",
         groundLine: "#3e7d4f",
         groundDust: "#69a96f",
         dinoBase: "#1f9e5a",
@@ -153,7 +154,7 @@
           y: 2,
           w: 44,
           h: 47,
-          idleFrame: 44,
+          idleFrame: 0,
           runFrames: [88, 132],
           crashedFrame: 220,
           jumpFrame: 0,
@@ -576,10 +577,10 @@
         let sy = SPRITE.dino.y;
         let sw = SPRITE.dino.w;
         let sh = SPRITE.dino.h;
-        let dx = x - 4;
-        let dy = y - 7;
-        let dw = 68;
-        let dh = 72;
+        let dx = x - 7;
+        let dy = y - 8;
+        let dw = 74;
+        let dh = 76;
 
         if (state.gameOver) {
           sx = SPRITE.dino.x + SPRITE.dino.crashedFrame;
@@ -587,10 +588,10 @@
           sx = SPRITE.dino.x + SPRITE.dino.duckFrames[runningFrame];
           sw = SPRITE.dino.duckW;
           sh = SPRITE.dino.duckH;
-          dx = x - 8;
+          dx = x - 10;
           dy = y - 2;
-          dw = 82;
-          dh = 40;
+          dw = 86;
+          dh = 42;
         } else if (!state.running) {
           sx = SPRITE.dino.x + SPRITE.dino.idleFrame;
         } else if (!dino.grounded) {
@@ -605,7 +606,17 @@
         ctx.translate(pivotX, pivotY);
         ctx.scale(scaleX, scaleY);
         ctx.translate(-pivotX, -pivotY);
-        ctx.drawImage(spriteSheet, sx, sy, sw, sh, dx, dy, dw, dh);
+        ctx.drawImage(
+          spriteSheet,
+          sx,
+          sy,
+          sw,
+          sh,
+          Math.round(dx),
+          Math.round(dy),
+          Math.round(dw),
+          Math.round(dh),
+        );
         ctx.restore();
       }
 
